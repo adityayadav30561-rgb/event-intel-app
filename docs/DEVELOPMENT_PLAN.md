@@ -37,7 +37,7 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
 |---|---|---|
 | 0 Foundations | ✅ Done (1 Oct 2026) | Live at event-intelligence-india.expo.app |
 | 1 App shell, design, sample data | ✅ Done (1 Oct 2026) | Apple-style design system; Home, Explore, Event Detail, Organizer, Agenda, Speakers, Exhibitors, Calendar agenda; 150+ sample events |
-| 2 Backend and database | ✅ Built and tested (1 Oct 2026) | API, schema, search, 26 API tests; deployment waits on the free accounts in docs/RUNBOOK.md |
+| 2 Backend and database | ✅ Done and deployed (1 Oct 2026) | API on Render (Singapore), Neon database, cron-job.org tick every 10 min; app reads live API |
 | 3–9 | Not started | |
 
 ### Changes made during the build
