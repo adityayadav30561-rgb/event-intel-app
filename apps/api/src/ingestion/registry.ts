@@ -12,7 +12,7 @@ import type { SourceConfig, SourceKind } from './types';
 export type SourceDefinition = {
   id: string;
   name: string;
-  adapter: 'jsonld' | 'ics' | 'rss' | 'curated' | 'sitemap' | 'confstech';
+  adapter: 'jsonld' | 'ics' | 'rss' | 'curated' | 'sitemap' | 'confstech' | 'cards';
   kind: SourceKind;
   priority: number;
   /** Events appear straight away (true) or wait in the review queue (false). */
@@ -107,6 +107,52 @@ export const SOURCE_DEFINITIONS: SourceDefinition[] = [
     trusted: true,
     config: { urls: ['https://files.konfhub.com/konfhub-sitemap/81fae46e2653383477759a342e742aa5.xml'], sitemap: { pattern: 'konfhub\\.com/[a-z0-9-]+$', max: 40 } },
     compliance: 'robots.txt allows everything except /cgi-bin/; llms.txt states "permissions: crawl,index". Terms forbid commercial resale only. Low yield: most listings are sports/culture and are filtered out.',
+  },
+  // Venue and association calendars without structured data: read from their event cards.
+  {
+    id: 'iicc-yashobhoomi',
+    name: 'Yashobhoomi (IICC) event list',
+    adapter: 'cards',
+    kind: 'official_venue',
+    priority: 70,
+    trusted: true,
+    config: {
+      // The site's own date filter (a GET form): the next 12 months, all event kinds.
+      urls: ['https://www.iiccnewdelhi.com/event-list?exhibition=on&conference=on&culture_events=on&other_events=on&start_date={today}&end_date={today+365d}'],
+      cards: { item: 'a:has(> .cardlis)', title: '.cardlis h3', date: '.cardlis > b', location: '.cardlis > p', locationKind: 'hall', description: '.cardlis h5', type: '.cardlis small span' },
+      defaults: { city: 'New Delhi', venueName: 'Yashobhoomi (IICC)', address: 'Yashobhoomi, Sector 25, Dwarka, New Delhi 110061' },
+    },
+    compliance: 'Official site of the venue operator. robots.txt: Allow /. No terms of use published. One page per run (the listing); cards link to each event’s own website.',
+  },
+  {
+    id: 'biec',
+    name: 'BIEC Bengaluru calendar',
+    adapter: 'cards',
+    kind: 'official_venue',
+    priority: 70,
+    trusted: true,
+    config: {
+      urls: ['https://www.biec.in/events'],
+      cards: { item: '.sort .box', title: '.box-title', date: '.event-date p', time: '.event-time p', link: '.box-title a', organizer: 'small' },
+      defaults: { city: 'Bengaluru', venueName: 'Bangalore International Exhibition Centre (BIEC)', address: '10th Mile, Tumkur Road, Madavara Post, Bengaluru 562123', typeHint: 'exhibition' },
+    },
+    compliance: 'Official venue site. robots.txt: Allow / (publishes a sitemap). No terms of use published. One page per run (the calendar, all years; past ones are dropped).',
+  },
+  {
+    id: 'nasscom',
+    name: 'NASSCOM events',
+    adapter: 'cards',
+    kind: 'official_organizer',
+    priority: 90,
+    trusted: true,
+    config: {
+      urls: ['https://nasscom.in/events?event_staus_filter%5Bupcoming%5D=upcoming&event_staus_filter%5Bongoing%5D=ongoing&sort_order=ASC'],
+      cards: { item: '.perspectives_card', title: '.job_title', date: '.postdate', link: '.job_title a', location: '.city', locationKind: 'place', description: '.job_desc', image: 'img', type: '.fee' },
+      defaults: { organizerName: 'NASSCOM', organizerUrl: 'https://nasscom.in' },
+      // Everything NASSCOM runs is technology-industry; their own titles rarely use our keywords.
+      requireTopic: false,
+    },
+    compliance: 'Official organizer site. robots.txt allows /events (disallows admin, search and login paths, which we never fetch). No terms of use found. One page per run, filtered by the site to upcoming and ongoing events; events abroad are dropped.',
   },
   // Needs your decision before enabling (see docs/SOURCES.md, tier B).
   {

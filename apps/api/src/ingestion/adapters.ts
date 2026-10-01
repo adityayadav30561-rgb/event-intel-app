@@ -1,6 +1,7 @@
 import { parse as parseCsv } from 'csv-parse/sync';
 import { XMLParser } from 'fast-xml-parser';
 import ical, { type VEvent } from 'node-ical';
+import { extractCards } from './extract/cards';
 import { extractJsonLdEvents } from './extract/jsonld';
 import type { Fetcher, RawEvent, SourceAdapter, SourceRow } from './types';
 
@@ -242,4 +243,26 @@ const confstech: SourceAdapter = {
   },
 };
 
-export const ADAPTERS: Record<string, SourceAdapter> = { jsonld, ics, rss, curated, sitemap, confstech };
+/** "{today}" and "{today+365d}" in a URL → India dates ("2026-10-01"), for listings filtered by a date window. */
+export function expandDateTokens(url: string, now = new Date()): string {
+  return url.replace(/\{today(?:\+(\d+)d)?\}/g, (_m, days?: string) =>
+    new Date(now.getTime() + 19_800_000 + Number(days ?? 0) * 86_400_000).toISOString().slice(0, 10),
+  );
+}
+
+/** Event cards on pages without structured data (venue and association calendars); selectors come from the source. */
+const cards: SourceAdapter = {
+  id: 'cards',
+  async read(source, fetcher) {
+    const selectors = source.config.cards;
+    if (!selectors) throw new Error(`Source ${source.id} has no card selectors`);
+    const events: RawEvent[] = [];
+    for (const template of source.config.urls ?? []) {
+      const url = expandDateTokens(template);
+      events.push(...extractCards(await fetcher.text(url), url, selectors, source.config.defaults?.address));
+    }
+    return events;
+  },
+};
+
+export const ADAPTERS: Record<string, SourceAdapter> = { jsonld, ics, rss, curated, sitemap, confstech, cards };

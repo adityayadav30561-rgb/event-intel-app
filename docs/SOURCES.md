@@ -11,7 +11,7 @@ Sources are switched on with the `SOURCES_ENABLED` setting on the API (Render �
 
 ## Tier A — recommended for automatic sync
 
-Trial run (fresh database, 1 Oct 2026): **145 events read → 48 imported, 1 duplicate merged**; 42 upcoming. Second run: 0 changed (idempotent).
+Trial run of all ten (fresh database, 1 Oct 2026): **412 events read → 69 imported, 1 duplicate merged, no errors**. The first seven alone gave 48; re-runs change nothing (idempotent).
 
 | Id | Source | What it brings | How it's read | Why it's allowed |
 |---|---|---|---|---|
@@ -22,6 +22,11 @@ Trial run (fresh database, 1 Oct 2026): **145 events read → 48 imported, 1 dup
 | `dev-events-india` | dev.events India page | Tech conferences: Black Hat India, Gartner IT Symposium, MongoDB.local, AWS Community Days, AVAR… | schema.org data on the page | robots allows all; no terms page. |
 | `konfhub` | KonfHub (Indian ticketing) | Occasional tech community events (DevFest, BSides); most listings are sports/culture and are filtered out | Sitemap + schema.org data | robots + llms.txt explicitly allow crawling; terms forbid commercial resale only. |
 | `confs-tech` | confs.tech | A few Indian developer/AI conferences | Open JSON on GitHub | MIT-licensed open data. |
+| `iicc-yashobhoomi` | Yashobhoomi (IICC), Dwarka, Delhi — iiccnewdelhi.com | India Mobile Congress, CPHI India, India Mining Week, ALUCAST, Light + LED, Pharmaceutical Congress… (14 of 19 in the next 12 months) | Event cards on the venue's list page (its own 12-month date filter); each card links to the event's website | Venue operator's official site; robots allows all; no terms of use published. One page per run. |
+| `biec` | BIEC, Bengaluru | IMTEX / Tooltech, Bengaluru Tech Summit, Electronica–Productronica, AgriCon… | Event cards on the venue calendar (one page, all years; past ones dropped) | Official venue site; robots allows all; no terms of use published. One page per run. |
+| `nasscom` | NASSCOM events | NASSCOM's own and partner events in India (few: about 1–4 at a time; events abroad and multi-city programmes are dropped) | Event cards on the events page, filtered by the site to upcoming + ongoing | Official organizer site; robots allows /events; no terms of use found. One page per run. |
+
+The last three have no feed or structured data, so they're read from the page layout ("event cards", `apps/api/src/ingestion/extract/cards.ts`). Each source's selectors are a few lines in the registry; if a site is redesigned the source reads 0 events and its health shows the failure, and only those selectors need updating. Test a source any time with `npm run cli -w @eii/api -- try-source <id>`.
 
 ## Tier B — possible, needs your decision
 
@@ -31,7 +36,6 @@ Trial run (fresh database, 1 Oct 2026): **145 events read → 48 imported, 1 dup
 | Google Developer Groups (`gdg-india`) | Dozens of AI/cloud community events a month | Same Bevy terms question | Same |
 | Meetup groups (per-group calendar feeds) | SAP, Odoo, AWS, AI, security meetups in Indian cities | Feeds are allowed by robots; Meetup's own terms page couldn't be read | A list of groups you want to follow |
 | Luma calendars (per-calendar feeds) | Bengaluru AI/startup scene | Allowed as a "supported interface" | A list of calendars you want to follow |
-| Yashobhoomi (IICC, Delhi), BIEC (Bengaluru), NASSCOM | IMC, Bengaluru Tech Summit, IMTEX, NASSCOM events | No feed: needs a custom page reader per site (robots allow; no terms found) | Your OK + some build time; may break when they redesign |
 | HITEX (Hyderabad) | Venue calendar with good structured data | Terms forbid use without written permission | Written permission from HITEX |
 
 ## Tier C — manual only ("Add by URL" or the team sheet)

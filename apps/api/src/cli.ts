@@ -3,7 +3,7 @@ import { loadConfig } from './config';
 import { createPgliteDb, createPostgresDb } from './db/client';
 import { migrate } from './db/migrate';
 import { seedReference } from './db/seed';
-import { syncSourceRegistry } from './ingestion/registry';
+import { SOURCE_DEFINITIONS, syncSourceRegistry } from './ingestion/registry';
 import { ADAPTERS } from './ingestion/adapters';
 import { createFetcher } from './ingestion/fetcher';
 import { importFromUrl } from './ingestion/importUrl';
@@ -15,6 +15,8 @@ import type { SourceConfig, SourceRow } from './ingestion/types';
  * Maintenance commands:
  *   npm run cli -w @eii/api -- try <adapter> <url> [--pattern <regex>] [--max <n>] [--any-topic]
  *       Reads a source without saving anything and shows what would be imported.
+ *   npm run cli -w @eii/api -- try-source <id> [--show-skipped]
+ *       Reads one registered source (src/ingestion/registry.ts) the same way, without saving.
  *   npm run cli -w @eii/api -- sync [--dry-run] [--source id1,id2]
  *       Runs the event sync against the configured database.
  *   npm run cli -w @eii/api -- import-url <url>
@@ -39,7 +41,19 @@ async function tryAdapter() {
     defaults: { city: flag('city'), venueName: flag('venue') },
     ...(pattern && adapterId === 'sitemap' ? { sitemap: { pattern, max } } : pattern ? { followLinks: { pattern, max } } : {}),
   };
-  const source: SourceRow = { id: 'trial', name: 'Trial', adapter: adapterId!, kind: 'official_event', config, priority: 50, enabled: true, trusted: true };
+  await showTrial({ id: 'trial', name: 'Trial', adapter: adapterId!, kind: 'official_event', config, priority: 50, enabled: true, trusted: true }, url);
+}
+
+async function trySource() {
+  const definition = SOURCE_DEFINITIONS.find((s) => s.id === rest[0]);
+  if (!definition) throw new Error(`Usage: try-source <${SOURCE_DEFINITIONS.map((s) => s.id).join('|')}>`);
+  const { compliance: _compliance, ...source } = definition;
+  await showTrial({ ...source, enabled: true }, source.config.urls?.join(', ') ?? source.id);
+}
+
+async function showTrial(source: SourceRow, url: string) {
+  const adapter = ADAPTERS[source.adapter];
+  if (!adapter) throw new Error(`Unknown adapter ${source.adapter}`);
   const raws = await adapter.read(source, createFetcher());
   const now = new Date();
   const skipped: Record<string, number> = {};
@@ -74,6 +88,8 @@ async function main() {
   switch (command) {
     case 'try':
       return tryAdapter();
+    case 'try-source':
+      return trySource();
     case 'sync':
       return withDb(async (db) => {
         const ids = flag('source')?.split(',').filter(Boolean);
@@ -86,7 +102,7 @@ async function main() {
       return;
     }
     default:
-      console.log('Commands: try, sync, import-url (see src/cli.ts)');
+      console.log('Commands: try, try-source, sync, import-url (see src/cli.ts)');
   }
 }
 

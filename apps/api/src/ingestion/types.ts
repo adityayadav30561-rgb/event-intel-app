@@ -1,4 +1,5 @@
 import type { AttendanceMode, EventStatus } from '@eii/shared';
+import type { CardSelectors } from './extract/cards';
 
 /**
  * An event as read from a source, before any cleanup (spec §99). Adapters fill what the
@@ -71,6 +72,8 @@ export type SourceConfig = {
   topics?: { technologyIds?: string[]; categoryIds?: string[] };
   /** Defaults applied when the source doesn't say (e.g. a venue's own address). */
   defaults?: Partial<Pick<RawEvent, 'venueName' | 'address' | 'city' | 'organizerName' | 'organizerUrl' | 'typeHint'>>;
+  /** Pages without structured data: where each fact sits on an event card (see extract/cards.ts). */
+  cards?: CardSelectors;
 };
 
 /** Polite HTTP access shared by all adapters. */

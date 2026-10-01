@@ -2,6 +2,8 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createPgliteDb, type Db } from '../src/db/client';
 import { migrate } from '../src/db/migrate';
 import { seedReference } from '../src/db/seed';
+import { expandDateTokens } from '../src/ingestion/adapters';
+import { parseDateRange, parseTimeRange } from '../src/ingestion/extract/cards';
 import { createFetcher } from '../src/ingestion/fetcher';
 import { runEventSync } from '../src/ingestion/sync';
 import { FetchError, type Fetcher } from '../src/ingestion/types';
@@ -294,5 +296,78 @@ describe('polite fetcher', () => {
     await expect(fetcher.text('https://site.example/private/events')).rejects.toThrow('Disallowed by robots.txt');
     expect(requested).toEqual(['https://site.example/robots.txt']);
     await expect(fetcher.text('https://site.example/events')).resolves.toContain('<html>');
+  });
+});
+
+describe('event cards (venue and association calendars)', () => {
+  it('reads human date ranges in the formats venues use', () => {
+    expect(parseDateRange('January 21 - 27, 2027')).toEqual({ start: '2027-01-21', end: '2027-01-27' });
+    expect(parseDateRange('February 26 - March 01, 2026')).toEqual({ start: '2026-02-26', end: '2026-03-01' });
+    expect(parseDateRange('April 6- 8, 2026')).toEqual({ start: '2026-04-06', end: '2026-04-08' });
+    expect(parseDateRange('Oct 23, 2026')).toEqual({ start: '2026-10-23', end: '2026-10-23' });
+    expect(parseDateRange('30 Sep, 2026 - 03 Oct, 2026')).toEqual({ start: '2026-09-30', end: '2026-10-03' });
+    expect(parseDateRange('6 - 29 Oct 2026')).toEqual({ start: '2026-10-06', end: '2026-10-29' });
+    expect(parseDateRange('10 Aug - 12 Nov, 2026')).toEqual({ start: '2026-08-10', end: '2026-11-12' });
+    expect(parseDateRange('December 28 - January 2, 2027')).toEqual({ start: '2026-12-28', end: '2027-01-02' });
+    expect(parseDateRange('12th–14th November 2026')).toEqual({ start: '2026-11-12', end: '2026-11-14' });
+    // Unsure means nothing, never a guessed date.
+    expect(parseDateRange('Coming soon')).toBeUndefined();
+    expect(parseDateRange('February 30, 2026')).toBeUndefined();
+    expect(parseDateRange('Decoration Expo 2026')).toBeUndefined();
+  });
+
+  it('reads daily hours', () => {
+    expect(parseTimeRange('9:00am - 6:00pm')).toEqual({ start: '09:00', end: '18:00' });
+    expect(parseTimeRange('10 AM to 5 PM')).toEqual({ start: '10:00', end: '17:00' });
+    expect(parseTimeRange('09:30 - 17:00')).toEqual({ start: '09:30', end: '17:00' });
+    expect(parseTimeRange('Hall 1')).toBeUndefined();
+  });
+
+  it('fills date windows in listing URLs with India dates', () => {
+    // 20:00 UTC on 30 Sep is already 1 Oct in India.
+    expect(expandDateTokens('https://v.example/list?from={today}&to={today+365d}', new Date('2026-09-30T20:00:00Z'))).toBe(
+      'https://v.example/list?from=2026-10-01&to=2027-10-01',
+    );
+  });
+
+  it('imports cards: relevant, in India and upcoming only; shared links are not used as official sites', async () => {
+    await db.query(
+      `insert into sources (id, name, adapter, kind, config, priority, enabled, trusted) values ('venue', 'Venue', 'cards', 'official_venue', $1, 70, true, true)`,
+      [
+        JSON.stringify({
+          urls: ['https://venue.example/events'],
+          cards: { item: '.box', title: 'h3', date: '.date', time: '.time', link: 'h3 a', organizer: 'small', location: '.where', locationKind: 'place' },
+          defaults: { venueName: 'Example Exhibition Centre', typeHint: 'exhibition' },
+        }),
+      ],
+    );
+    const card = (title: string, date: string, href: string, where = 'Bengaluru, Karnataka') =>
+      `<div class="box"><h3><a href="${href}">${title}</a></h3><small><b>Show Organisers</b></small><span class="date"><p>${date}</p></span><span class="time"><p>9:00am - 6:00pm</p></span><p class="where">${where}</p></div>`;
+    const page = `<html><body>
+      ${card('IMTEX 2027 / Tooltech 2027', 'January 21 - 27, 2027', 'Calendar_event\\2k27\\imtex.php')}
+      ${card('Doors Windows & Facades Expo', 'December 10 - 12, 2026', 'https://shared.example/')}
+      ${card('Aluminium Extrusions Expo', 'December 10 - 12, 2026', 'https://shared.example/')}
+      ${card('Grand Furniture Fair', 'November 1 - 3, 2026', 'furniture.php')}
+      ${card('Electronics Week Berlin', 'November 4 - 6, 2026', 'berlin.php', 'Germany')}
+      ${card('Manufacturing Leaders Meet', 'November 9, 2026', 'mlm.php', 'Multiple Cities')}
+      ${card('Machine Tools Expo 2025', 'March 3 - 5, 2025', 'old.php')}
+    </body></html>`;
+    const result = await sync(fakeFetcher({ 'https://venue.example/events': page }));
+    expect(result.created).toBe(2);
+    const rows = await db.query<{ title: string; start_at: Date; end_at: Date; official_website: string | null; event_type: string }>(
+      'select title, start_at, end_at, official_website, event_type from event_occurrences order by start_at',
+    );
+    expect(rows.map((r) => r.title)).toEqual(['Aluminium Extrusions Expo', 'IMTEX 2027 / Tooltech 2027']);
+    const [aluminium, imtex] = rows;
+    // A link two cards share identifies neither: it would merge co-located expos into one.
+    expect(aluminium!.official_website).toBe('https://venue.example/events');
+    // Backslash paths are links on the venue's own site; daily hours are India time.
+    expect(imtex!.official_website).toBe('https://venue.example/Calendar_event/2k27/imtex.php');
+    expect(new Date(imtex!.start_at).toISOString()).toBe('2027-01-21T03:30:00.000Z');
+    expect(new Date(imtex!.end_at).toISOString()).toBe('2027-01-27T12:30:00.000Z');
+    expect(imtex!.event_type).toBe('exhibition');
+    // A second read changes nothing.
+    const again = await sync(fakeFetcher({ 'https://venue.example/events': page }));
+    expect([again.created, again.updated]).toEqual([0, 0]);
   });
 });
