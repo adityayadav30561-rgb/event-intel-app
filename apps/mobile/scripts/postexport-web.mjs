@@ -46,7 +46,9 @@ const files = walk(dist)
   .map((full) => `/${path.relative(dist, full).split(path.sep).join('/')}`)
   .filter((url) => url !== '/sw.js' && !url.endsWith('.map') && !url.endsWith('metadata.json'))
   // The icon package ships 19 fonts; the app uses only Ionicons (about 3 MB saved on each phone).
-  .filter((url) => !url.includes('/vector-icons/') || url.includes('/Ionicons.'));
+  .filter((url) => !url.includes('/vector-icons/') || url.includes('/Ionicons.'))
+  // The map needs a connection for its tiles anyway; it loads when first opened.
+  .filter((url) => !url.includes('/maplibre-gl'));
 const precache = ['/', ...files].map((url) => encodeURI(url));
 const bytes = walk(dist).filter((f) => files.includes(`/${path.relative(dist, f).split(path.sep).join('/')}`)).reduce((sum, f) => sum + fs.statSync(f).size, 0);
 const version = process.env.EXPO_PUBLIC_BUILD_TIME || String(Date.now());
