@@ -34,6 +34,9 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               ...TransitionPresets.SlideFromRightIOS,
+              // The stack turns transitions off on the web by default ("browser-like");
+              // this is an app, so use the iOS push: slide in from the right with parallax.
+              animation: 'slide_from_right',
               headerShown: false,
               gestureEnabled: true,
               // On the web the stack lets cards grow with their content (document scrolling);
