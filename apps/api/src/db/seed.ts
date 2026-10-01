@@ -95,3 +95,14 @@ export async function refreshDemoData(db: Db, now: Date = new Date(), force = fa
   });
   return true;
 }
+
+/** Removes all sample events once real sources are in use (DEMO_DATA=false). */
+export async function purgeDemoData(db: Db): Promise<number> {
+  return db.transaction(async (tx) => {
+    const removed = await tx.query<{ id: string }>('delete from event_occurrences where is_demo returning id');
+    await tx.query(`delete from speakers where id like 'evt_demo_%'`);
+    await tx.query(`delete from exhibitors where id like 'evt_demo_%'`);
+    await tx.query(`delete from app_state where key = 'demo_seed'`);
+    return removed.length;
+  });
+}

@@ -21,6 +21,10 @@ const schema = z.object({
     .default('true')
     .transform((v) => v === 'true'),
   EVENT_SYNC_INTERVAL_HOURS: z.coerce.number().positive().default(12),
+  /** Comma-separated ids of sources to read (see src/ingestion/registry.ts and docs/SOURCES.md). */
+  SOURCES_ENABLED: z.string().default(''),
+  /** Optional team Google Sheet, published as CSV (File → Share → Publish to web → CSV). */
+  CURATED_SHEET_URL: z.preprocess((v) => (v === '' ? undefined : v), z.string().url().optional()),
   LOG_LEVEL: z.string().default('info'),
 });
 

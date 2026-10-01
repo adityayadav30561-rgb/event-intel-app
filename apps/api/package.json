@@ -10,18 +10,24 @@
     "build": "node build.mjs",
     "start:prod": "node --enable-source-maps dist/server.js",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cli": "tsx --env-file-if-exists=.env src/cli.ts"
   },
   "dependencies": {
     "@eii/shared": "^0.1.0",
     "@electric-sql/pglite": "^0.5.8",
+    "cheerio": "^1.2.0",
     "cors": "^2.8.6",
+    "csv-parse": "^7.0.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
+    "fast-xml-parser": "^5.11.2",
     "helmet": "^8.3.0",
+    "node-ical": "^0.27.2",
     "pg": "^8.23.1",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
+    "robots-parser": "^3.0.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {

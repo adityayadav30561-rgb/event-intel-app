@@ -1,8 +1,12 @@
 import type { Db } from './client';
 import { sql as init } from './migrations/001_init';
+import { sql as ingestion } from './migrations/002_ingestion';
 
 /** Ordered migrations, embedded in the bundle so the server can migrate itself on start. */
-const MIGRATIONS: { id: string; sql: string }[] = [{ id: '001_init', sql: init }];
+const MIGRATIONS: { id: string; sql: string }[] = [
+  { id: '001_init', sql: init },
+  { id: '002_ingestion', sql: ingestion },
+];
 
 /** Arbitrary constant for the advisory lock: only one instance migrates at a time. */
 const LOCK_KEY = 482_901;

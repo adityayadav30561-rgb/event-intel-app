@@ -11,8 +11,9 @@ export function syncRoutes(db: Db, config: Config): Router {
       `select completed_at, status from sync_runs where status <> 'running' order by started_at desc limit 1`,
     );
     const [demo] = await db.query<{ updated_at: Date }>(`select updated_at from app_state where key = 'demo_seed'`);
-    const live = Boolean(lastRun?.completed_at);
-    const lastUpdatedAt = (live ? lastRun?.completed_at : demo?.updated_at) ?? null;
+    // Sample mode until real sources replace the generated events.
+    const live = !config.DEMO_DATA;
+    const lastUpdatedAt = (live ? lastRun?.completed_at : (demo?.updated_at ?? lastRun?.completed_at)) ?? null;
     const staleAfterMs = config.EVENT_SYNC_INTERVAL_HOURS * 2 * 3_600_000;
     res.json({
       mode: live ? 'live' : 'sample',

@@ -77,6 +77,11 @@ const SORTS = {
 export class EventRepository {
   constructor(private readonly db: Db) {}
 
+  /** Same repository on another connection (e.g. inside a transaction). */
+  withDb(db: Db): EventRepository {
+    return new EventRepository(db);
+  }
+
   /** Filtered, searched, sorted and paginated event list (GET /events). */
   async list(query: EventQuery, now: Date = new Date()): Promise<Page<EventSummary>> {
     const page = await this.listInternal(query, now, 'fts');
@@ -176,9 +181,11 @@ export class EventRepository {
     );
   }
 
-  async get(id: string): Promise<EventDetail | null> {
+  /** Full event. `includeUnverified` is for the ingestion pipeline and admin tools only. */
+  async get(id: string, includeUnverified = false): Promise<EventDetail | null> {
     const sql = new Sql();
-    visible(sql);
+    if (includeUnverified) sql.and('o.deleted_at is null');
+    else visible(sql);
     sql.and(`o.id = ${sql.param(id)}`);
     const rows = await this.db.query<
       SummaryRow & {

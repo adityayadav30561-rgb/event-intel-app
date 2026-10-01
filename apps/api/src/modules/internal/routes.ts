@@ -4,8 +4,10 @@ import { Router, type RequestHandler } from 'express';
 import type { Config } from '../../config';
 import type { Db } from '../../db/client';
 import { refreshDemoData } from '../../db/seed';
+import { runEventSync } from '../../ingestion/sync';
 import { updateStatuses } from '../../jobs/statusJob';
 import { HttpError } from '../../lib/http';
+import { logger } from '../../lib/logger';
 
 /** Constant-time check of the cron secret sent in the X-Cron-Secret header. */
 const requireCronSecret =
@@ -29,20 +31,43 @@ const istDay = (d: Date) => {
  *
  * The ping keeps the free API awake, but the free database has a monthly compute allowance and
  * sleeps after 5 idle minutes, so the tick only touches the database when work is actually due:
- * statuses hourly, sample data once a day. Phase 3 adds the 12-hour sync; Phase 7 adds reminders.
+ * statuses hourly, sample data once a day, the event sync every EVENT_SYNC_INTERVAL_HOURS.
+ * The sync can take minutes, so it runs in the background and the tick answers at once.
  */
 export function internalRoutes(db: Db, config: Config): Router {
   const router = Router();
-  let running = false;
+  const syncEveryMs = config.EVENT_SYNC_INTERVAL_HOURS * 3_600_000;
+  let busy = false;
   let lastStatusRun = 0;
   let lastDemoDay = '';
+  /** When the next sync is due; read from the database once after a restart. */
+  let nextSyncAt: number | null = null;
+  let syncRunning = false;
+
+  const startSyncIfDue = async (now: Date): Promise<boolean> => {
+    if (syncRunning) return false;
+    if (nextSyncAt === null) {
+      const [last] = await db.query<{ started_at: Date }>(`select started_at from sync_runs where status <> 'running' order by started_at desc limit 1`);
+      nextSyncAt = last ? new Date(last.started_at).getTime() + syncEveryMs : 0;
+    }
+    if (now.getTime() < nextSyncAt) return false;
+    nextSyncAt = now.getTime() + syncEveryMs;
+    syncRunning = true;
+    void runEventSync(db, { now })
+      .then((summary) => logger.info({ summary }, 'Event sync finished'))
+      .catch((error) => logger.error({ err: error }, 'Event sync failed'))
+      .finally(() => {
+        syncRunning = false;
+      });
+    return true;
+  };
 
   router.post('/tick', requireCronSecret(config.CRON_SECRET), async (_req, res) => {
-    if (running) {
+    if (busy) {
       res.status(202).json({ status: 'already_running' });
       return;
     }
-    running = true;
+    busy = true;
     const started = Date.now();
     try {
       const now = new Date();
@@ -55,9 +80,12 @@ export function internalRoutes(db: Db, config: Config): Router {
         result.statuses = await updateStatuses(db, now);
         lastStatusRun = started;
       }
+      if (nextSyncAt === null || started >= nextSyncAt) {
+        result.syncStarted = await startSyncIfDue(now);
+      }
       res.json({ status: 'ok', durationMs: Date.now() - started, touchedDatabase: Object.keys(result).length > 0, ...result });
     } finally {
-      running = false;
+      busy = false;
     }
   });
   return router;

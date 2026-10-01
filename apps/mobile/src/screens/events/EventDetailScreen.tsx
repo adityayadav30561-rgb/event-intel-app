@@ -197,7 +197,13 @@ function KeyFacts({ event: e }: { event: EventDetail }) {
 function dailyHours(e: EventDetail, days: number): string {
   const start = new Date(e.startAt);
   const end = new Date(e.endAt);
-  const hours = days === 1 ? formatTimeRange(start, end) : `${formatTime(start)} – ${formatTime(end)} daily`;
+  // Some sources give a start time only; don't show a fake range like "10:00 AM – 10:00 AM".
+  const hours =
+    start.getTime() === end.getTime()
+      ? `Starts ${formatTime(start)}`
+      : days === 1
+        ? formatTimeRange(start, end)
+        : `${formatTime(start)} – ${formatTime(end)} daily`;
   return `${hours} IST${days > 1 ? ` · ${days} days` : ''}`;
 }
 

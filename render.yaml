@@ -21,6 +21,13 @@ services:
         # Render generates a random secret; copy it into the cron-job.org job header.
         generateValue: true
       - key: DEMO_DATA
-        value: "true"
+        # Set in the dashboard: true = sample events, false = real sources only (see docs/SOURCES.md).
+        sync: false
+      - key: SOURCES_ENABLED
+        # Comma-separated source ids to read, set in the dashboard (docs/SOURCES.md).
+        sync: false
+      - key: CURATED_SHEET_URL
+        # Optional: the team Google Sheet published as CSV.
+        sync: false
       - key: LOG_LEVEL
         value: info
