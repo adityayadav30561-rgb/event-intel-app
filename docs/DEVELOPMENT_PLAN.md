@@ -41,6 +41,24 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
 | 3 Event data pipeline | ✅ Built and tested (1 Oct 2026) | Readers for calendar feeds, structured page data, sitemaps, open data, venue/association event cards (IICC Yashobhoomi, BIEC, NASSCOM) and a team sheet; cleanup, dedupe, change detection, 12-hour sync; 47 API tests; 69 real events from 10 sources in a trial. Sources are switched on in Render (docs/SOURCES.md) |
 | 4–9 | Not started | |
 
+### Pending (agreed 1 Oct 2026, picked up after the current phase)
+
+**Event coverage by region: North, East, South, West.** The first live sync (1 Oct) gave 46 events, almost all in the North: New Delhi 15 (all from Yashobhoomi), Noida 15, South 6, Central 1, online 6, **West 0, East 0**. That is too few to browse, and Delhi's other big venue, Bharat Mandapam, blocks bots. The work:
+- Source discovery region by region, with the same rules as before (robots.txt, terms, no bypassing): venues, chambers of commerce, industry associations and organisers in each zone.
+  - **North:** Delhi NCR beyond Yashobhoomi (PHD Chamber, Delhi organisers, Gurugram and Noida venues), Chandigarh, Jaipur, Lucknow.
+  - **West:** Mumbai (Jio World Centre, Bombay Exhibition Centre/NESCO), Pune (Auto Cluster), Ahmedabad (Mahatma Mandir, Helipad Exhibition Centre), Goa.
+  - **South:** Hyderabad (HICC/HITEX, where HITEX needs written permission), Chennai Trade Centre, Kochi, Coimbatore (CODISSIA).
+  - **East:** Kolkata (Biswa Bangla, Science City), Bhubaneswar, Guwahati.
+- Target: a healthy number of upcoming events in every zone. Show the count per zone in the sync status.
+- In the app: browse and filter by zone (North / East / South / West), next to cities, so each region's events are easy to look through.
+
+**Sources waiting on a decision or on someone else** (details in docs/SOURCES.md):
+- **Team Google Sheet:** template to be shared. Covers events from sites that block bots: SAP, Oracle, AWS, ServiceNow, Microsoft, FICCI, CII, ET, and BIEC and dev.events (below).
+- **BIEC and dev.events:** readers are built, but both sites refuse our hosted server (HTTP 403). Switch back on if either site allows our bot; we could ask them.
+- **Salesforce Trailblazer and Google Developer Groups:** their platform's (Bevy) terms forbid scraping. Needs a yes from you, ideally after asking them.
+- **Meetup groups and Luma calendars:** need the list of groups and calendars to follow.
+- **HITEX Hyderabad:** needs written permission.
+
 ### Changes made during the build
 
 | Plan said | Built | Why |
