@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# native (no native builds in this project)
+/apps/mobile/ios
+/apps/mobile/android
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# logs
+npm-debug.*
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+*.pem
+
+# local env files (secrets never committed)
+.env
+.env*.local
+
+# TypeScript
+*.tsbuildinfo
+
+# local databases
+.data/

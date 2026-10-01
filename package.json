@@ -1,0 +1,26 @@
+{
+  "name": "event-intelligence-india",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Internal app for discovering and tracking professional events across India.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:app": "npm run start -w @eii/mobile",
+    "dev:web": "npm run web -w @eii/mobile",
+    "dev:api": "npm run dev -w @eii/api",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write .",
+    "deploy:preview": "npm run deploy:preview -w @eii/mobile",
+    "deploy:web": "npm run deploy:web -w @eii/mobile"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

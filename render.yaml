@@ -1,0 +1,26 @@
+# Render Blueprint for the API (free plan). See docs/RUNBOOK.md for the one-time setup.
+services:
+  - type: web
+    name: event-intel-api
+    runtime: node
+    plan: free
+    # Same region as the Neon database (AWS Singapore) to keep queries fast.
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build --workspace @eii/api
+    startCommand: npm run start:prod --workspace @eii/api
+    # Liveness only — does not wake the free database.
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        # Paste the Neon connection string in the Render dashboard; never commit it.
+        sync: false
+      - key: CRON_SECRET
+        # Render generates a random secret; copy it into the cron-job.org job header.
+        generateValue: true
+      - key: DEMO_DATA
+        value: "true"
+      - key: LOG_LEVEL
+        value: info

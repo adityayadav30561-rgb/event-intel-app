@@ -1,0 +1,26 @@
+import type { Db } from './client';
+import { sql as init } from './migrations/001_init';
+
+/** Ordered migrations, embedded in the bundle so the server can migrate itself on start. */
+const MIGRATIONS: { id: string; sql: string }[] = [{ id: '001_init', sql: init }];
+
+/** Arbitrary constant for the advisory lock: only one instance migrates at a time. */
+const LOCK_KEY = 482_901;
+
+/** Applies pending migrations in one transaction. Safe to run on every start. */
+export async function migrate(db: Db): Promise<string[]> {
+  await db.query('create table if not exists schema_migrations (id text primary key, applied_at timestamptz not null default now())');
+  return db.transaction(async (tx) => {
+    // Transaction-scoped lock: released automatically on commit or rollback.
+    await tx.query('select pg_advisory_xact_lock($1)', [LOCK_KEY]);
+    const applied = new Set((await tx.query<{ id: string }>('select id from schema_migrations')).map((r) => r.id));
+    const ran: string[] = [];
+    for (const migration of MIGRATIONS) {
+      if (applied.has(migration.id)) continue;
+      await tx.exec(migration.sql);
+      await tx.query('insert into schema_migrations (id) values ($1)', [migration.id]);
+      ran.push(migration.id);
+    }
+    return ran;
+  });
+}
