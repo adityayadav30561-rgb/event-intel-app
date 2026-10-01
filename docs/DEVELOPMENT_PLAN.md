@@ -39,7 +39,8 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
 | 1 App shell, design, sample data | ✅ Done (1 Oct 2026) | Apple-style design system; Home, Explore, Event Detail, Organizer, Agenda, Speakers, Exhibitors, Calendar agenda; 150+ sample events |
 | 2 Backend and database | ✅ Done and deployed (1 Oct 2026) | API on Render (Singapore), Neon database, cron-job.org tick every 10 min; app reads live API |
 | 3 Event data pipeline | ✅ Built and tested (1 Oct 2026) | Readers for calendar feeds, structured page data, sitemaps, open data, venue/association event cards (IICC Yashobhoomi, BIEC, NASSCOM) and a team sheet; cleanup, dedupe, change detection, 12-hour sync; 47 API tests; 69 real events from 10 sources in a trial. Sources are switched on in Render (docs/SOURCES.md) |
-| 4–9 | Not started | |
+| 4 Sign-in, onboarding, interests, relevance | ✅ Built and tested (2 Oct 2026) | Team accounts (admin adds people with one-time passwords), rotating sessions, choose-your-password, onboarding, Interests, match badges with reasons, Home "For You"; 61 API + 36 shared tests |
+| 5–9 | Not started | |
 
 ### Pending (agreed 1 Oct 2026, picked up after the current phase)
 
@@ -69,6 +70,10 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
 | Drizzle ORM | Plain parameterised SQL, embedded migrations, a thin `Db` interface | The heavy queries are full-text and trigram SQL an ORM wouldn't simplify; one code path for Neon and PGlite |
 | Local Postgres for development | PGlite (real Postgres compiled to WebAssembly) | No install or credentials; tests run on a fresh database every time |
 | All tables in Phase 2 | Event, taxonomy, provenance and sync tables now; user and tracking tables with their phases (4, 5) | Each phase adds its own migration |
+| argon2 password hashing | scrypt (Node's built-in crypto), 64 MiB per hash | Memory-hard and OWASP-recommended like argon2, with no native add-on to build on the free host |
+| `npm run user:create` for accounts; user management in Phase 8 | First admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD` in Render; More → Team (add, reset password, remove access) now | The free host has no shell to run commands on, and adding a colleague shouldn't need one |
+| Relevance computed on the server per request | The same shared rules run on the phone (badges, "Why it matches you") and on the server ("For You") | Works offline, re-ranks the moment interests change, and keeps event responses cacheable |
+| Refresh token in an HttpOnly cookie | Refresh token in the app's storage, rotated on every use with reuse detection | App and API are on different sites, and iPhone Safari blocks cross-site cookies |
 | /health checks the database | /health is liveness only; `/health?db=1` for a deep check | Health checks and pings must not wake the free database (100 compute-hours/month) |
 
 ## 1. Summary of decisions

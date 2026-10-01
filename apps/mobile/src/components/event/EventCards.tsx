@@ -4,6 +4,7 @@ import { Glass, PressableScale, Skeleton, Text } from '@/components/ui';
 import { radius, shadow, spacing, useTheme } from '@/theme';
 import { Artwork } from './Artwork';
 import { endOf, openEvent, startOf, typeAndTopics, whenWhere } from './meta';
+import { EventRelevanceBadge } from './RelevanceBadge';
 import { StatusBadge } from './StatusBadge';
 
 const a11y = (event: EventSummary) => `${event.title}, ${whenWhere(event, true)}`;
@@ -53,6 +54,7 @@ export function EventTile({ event, width = 240, note }: { event: EventSummary; w
       <Text variant="subheadline" tone="secondary" numberOfLines={1}>
         {whenWhere(event)}
       </Text>
+      <EventRelevanceBadge event={event} />
       {note ? (
         <Text variant="footnote" tone="tertiary" numberOfLines={1}>
           {note}
@@ -91,6 +93,7 @@ export function EventRow({ event, position = 'middle' }: { event: EventSummary; 
           <Text variant="footnote" tone="secondary" numberOfLines={1}>
             {typeAndTopics(event)}
           </Text>
+          <EventRelevanceBadge event={event} />
           {event.status !== 'upcoming' ? (
             <View style={styles.rowBadge}>
               <StatusBadge status={event.status} />

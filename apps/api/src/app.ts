@@ -8,9 +8,12 @@ import type { Config } from './config';
 import type { Db } from './db/client';
 import { errorHandler, notFoundHandler } from './lib/http';
 import { logger } from './lib/logger';
+import { accountRoutes, authRoutes, requireAuth } from './modules/auth/routes';
+import type { AuthService } from './modules/auth/service';
 import { eventRoutes } from './modules/events/routes';
 import { EventService } from './modules/events/service';
 import { internalRoutes } from './modules/internal/routes';
+import { meRoutes } from './modules/me/routes';
 import { syncRoutes } from './modules/sync/routes';
 import { taxonomyRoutes } from './modules/taxonomy/routes';
 
@@ -18,7 +21,7 @@ import { taxonomyRoutes } from './modules/taxonomy/routes';
 const APP_ORIGIN = /^https:\/\/event-intelligence-india(--[a-z0-9]+)?\.expo\.app$/;
 const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
 
-export function createApp(db: Db, config: Config) {
+export function createApp(db: Db, config: Config, auth: AuthService) {
   const app = express();
   const extraOrigins = new Set(config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean));
 
@@ -49,6 +52,11 @@ export function createApp(db: Db, config: Config) {
   const events = new EventService(db);
   const v1 = express.Router();
   v1.use(rateLimit({ windowMs: 60_000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
+  // Signing in is the only thing possible without an account; everything else needs one.
+  v1.use(authRoutes(auth));
+  v1.use(requireAuth(auth));
+  v1.use(accountRoutes(auth));
+  v1.use(meRoutes(db, auth, events));
   v1.use(eventRoutes(events));
   v1.use(taxonomyRoutes(db, events));
   v1.use(syncRoutes(db, config));

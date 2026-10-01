@@ -19,9 +19,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Animated, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Artwork, EventTile, StatusBadge } from '@/components/event';
+import { Artwork, EventTile, RelevanceBadge, StatusBadge } from '@/components/event';
 import { FloatingControls, goBack } from '@/components/layout/LargeTitle';
 import { Avatar, EmptyState, ErrorState, IconButton, ListGroup, ListRow, SectionHeader, Skeleton, Text } from '@/components/ui';
+import { useRelevance } from '@/hooks/useAccount';
 import { useEvent, useRelatedEvents } from '@/hooks/useEvents';
 import { openDirections, openExternal } from '@/services/links';
 import { shareEvent } from '@/services/share';
@@ -75,6 +76,7 @@ export function EventDetailScreen() {
           <Header event={e} />
           <Actions event={e} />
           <KeyFacts event={e} />
+          <WhyItMatches event={e} />
           <Changes event={e} />
           <About event={e} />
           <Topics event={e} />
@@ -205,6 +207,38 @@ function dailyHours(e: EventDetail, days: number): string {
         ? formatTimeRange(start, end)
         : `${formatTime(start)} – ${formatTime(end)} daily`;
   return `${hours} IST${days > 1 ? ` · ${days} days` : ''}`;
+}
+
+/** "Why this event matches you" (Phase 4): the match level and its reasons, from your interests. */
+function WhyItMatches({ event: e }: { event: EventDetail }) {
+  const { colors } = useTheme();
+  const relevance = useRelevance(e);
+  if (!relevance) return null;
+  return (
+    <View style={styles.block}>
+      <Text variant="title3" style={styles.blockTitle} accessibilityRole="header">
+        Why It Matches You
+      </Text>
+      <View style={[styles.card, styles.matchCard, { backgroundColor: colors.surface }]}>
+        <RelevanceBadge relevance={relevance} capsule />
+        <View style={styles.reasons}>
+          {relevance.reasons.map((reason) => (
+            <View key={reason} style={styles.reason}>
+              <Ionicons name="checkmark" size={16} color={colors.green} />
+              <Text variant="body" style={styles.flexText}>
+                {reason}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <Pressable onPress={() => router.push('/settings/interests')} accessibilityRole="link" hitSlop={8}>
+          <Text variant="subheadline" tone="tint">
+            Based on your interests
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
 function Changes({ event: e }: { event: EventDetail }) {
@@ -462,6 +496,10 @@ const styles = StyleSheet.create({
   section: { marginTop: spacing.xxl },
   inset: { paddingHorizontal: spacing.lg },
   card: { borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm },
+  matchCard: { gap: spacing.md },
+  reasons: { gap: spacing.sm },
+  reason: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  flexText: { flex: 1, minWidth: 0 },
   description: { marginTop: spacing.xs },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   topic: { paddingHorizontal: 14, height: 36, borderRadius: radius.pill, justifyContent: 'center' },

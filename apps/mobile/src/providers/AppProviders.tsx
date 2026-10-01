@@ -32,7 +32,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
     <PersistQueryClientProvider
       client={client}
       // A new app version or data source starts with a fresh cache.
-      persistOptions={{ persister, maxAge: WEEK, buster: `${BUILD.version}:${dataMode}` }}
+      persistOptions={{
+        persister,
+        maxAge: WEEK,
+        buster: `${BUILD.version}:${dataMode}`,
+        // The profile lives in the session store; a restored older copy could undo onboarding or a password change.
+        dehydrateOptions: { shouldDehydrateQuery: (query) => query.state.status === 'success' && !(query.queryKey.length === 1 && query.queryKey[0] === 'me') },
+      }}
     >
       {children}
     </PersistQueryClientProvider>

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { describeChange, formatRelativePast, getCategory, greetingFor, STATUS_LABELS, type EventSummary, type HomeFeed } from '@eii/shared';
+import { describeChange, describePreferences, formatRelativePast, getCategory, greetingFor, hasPreferences, STATUS_LABELS, type EventSummary, type HomeFeed } from '@eii/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -16,6 +16,7 @@ import { LargeTitleScrollView } from '@/components/layout/LargeTitle';
 import { PlaceButton } from '@/components/pickers/PlaceButton';
 import { PlaceSheet } from '@/components/pickers/PlaceSheet';
 import { ErrorState, ListGroup, PressableScale, SearchField, SectionHeader, Skeleton, Text } from '@/components/ui';
+import { useForYou, usePreferences } from '@/hooks/useAccount';
 import { useHomeFeed, useIsSampleData } from '@/hooks/useEvents';
 import { placeCityIds, placeName, usePlaceStore, type Place } from '@/store/placeStore';
 import { radius, shadow, spacing, useTheme } from '@/theme';
@@ -102,6 +103,8 @@ function HomeSections({ feed, loading, featuredWidth, tileWidth, place, onChange
         </ScrollView>
       </View>
 
+      <ForYouSection />
+
       {/* This week */}
       <View style={styles.section}>
         <SectionHeader title="This Week" onSeeAll={feed && feed.thisWeek.length > 4 ? () => router.push('/browse/this-week') : undefined} />
@@ -172,6 +175,69 @@ function HomeSections({ feed, loading, featuredWidth, tileWidth, place, onChange
         </Text>
       ) : null}
     </>
+  );
+}
+
+/** "Events you may want to track" (Phase 4): best matches for your interests, with the reason. */
+function ForYouSection() {
+  const { colors } = useTheme();
+  const prefs = usePreferences();
+  const forYou = useForYou();
+  const interests = describePreferences(prefs.data);
+
+  if (prefs.data && !hasPreferences(prefs.data)) {
+    return (
+      <View style={styles.section}>
+        <SectionHeader title="For You" />
+        <View style={styles.inset}>
+          <View style={[styles.promptCard, { backgroundColor: colors.surface }]}>
+            <Ionicons name="sparkles" size={26} color={colors.tint} />
+            <Text variant="headline">Events picked for you</Text>
+            <Text variant="subheadline" tone="secondary">
+              Choose what you follow, like SAP, Manufacturing or Hyderabad, and the best matches appear here with the reasons.
+            </Text>
+            <Pressable onPress={() => router.push('/settings/interests')} accessibilityRole="button" hitSlop={8}>
+              <Text variant="headline" tone="tint">
+                Choose Interests
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  const items = forYou.data ?? [];
+  if (!forYou.isPending && !items.length) {
+    if (!prefs.data) return null;
+    return (
+      <View style={styles.section}>
+        <SectionHeader title="For You" onSeeAll={() => router.push('/settings/interests')} seeAllLabel="Interests" />
+        <View style={styles.inset}>
+          <View style={[styles.quietCard, { backgroundColor: colors.surface }]}>
+            <Text variant="subheadline" tone="secondary">
+              No upcoming events match {interests ?? 'your interests'} yet. New events are checked twice a day.
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.section}>
+      <SectionHeader title="For You" onSeeAll={() => router.push('/settings/interests')} seeAllLabel="Interests" />
+      {interests ? (
+        <Text variant="subheadline" tone="secondary" numberOfLines={1} style={styles.sectionNote}>
+          Because you follow {interests}
+        </Text>
+      ) : null}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelf}>
+        {forYou.isPending && !forYou.data
+          ? [0, 1, 2].map((i) => <EventTileSkeleton key={i} />)
+          : items.map((event) => <EventTile key={event.id} event={event} note={event.relevance.reasons.slice(0, 2).join(' · ')} />)}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -248,6 +314,8 @@ const styles = StyleSheet.create({
   shelf: { paddingHorizontal: spacing.lg, gap: spacing.md },
   inset: { paddingHorizontal: spacing.lg },
   quietCard: { borderRadius: radius.lg, padding: spacing.lg },
+  promptCard: { borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm, alignItems: 'flex-start' },
+  sectionNote: { paddingHorizontal: spacing.lg, marginTop: -spacing.xs, marginBottom: spacing.md },
   emptyCard: { marginHorizontal: spacing.lg, borderRadius: radius.xl, padding: spacing.xxl, alignItems: 'center', gap: spacing.sm },
   center: { textAlign: 'center' },
   updatedRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 10, paddingHorizontal: spacing.lg },

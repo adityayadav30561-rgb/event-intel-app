@@ -4,6 +4,8 @@ export const APP = {
   shortName: 'Event Intel',
   /** All date logic runs in India time unless an event carries its own timezone. */
   timezone: 'Asia/Kolkata',
+  /** Where the team opens the app (and adds it to the Home Screen). */
+  url: 'https://event-intelligence-india.expo.app',
 } as const;
 
 /**

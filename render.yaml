@@ -29,5 +29,13 @@ services:
       - key: CURATED_SHEET_URL
         # Optional: the team Google Sheet published as CSV.
         sync: false
+      - key: ADMIN_EMAIL
+        # Your account (the first admin), created on start if it doesn't exist yet. Set in the dashboard.
+        sync: false
+      - key: ADMIN_PASSWORD
+        # Its first password, typed by you in the dashboard. Can be removed after your first sign-in.
+        sync: false
+      - key: ADMIN_NAME
+        sync: false
       - key: LOG_LEVEL
         value: info

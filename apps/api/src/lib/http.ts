@@ -42,10 +42,10 @@ export const notFoundHandler: RequestHandler = (_req, res) => {
   res.status(404).json({ error: { code: 'not_found', message: 'No such endpoint' } });
 };
 
-/** Short client caching for public, slowly-changing data. */
+/** Short caching on the person's own device only (responses are per signed-in user). */
 export const cacheFor =
   (seconds: number): RequestHandler =>
   (_req, res, next) => {
-    res.set('Cache-Control', `public, max-age=${seconds}, stale-while-revalidate=${seconds * 4}`);
+    res.set('Cache-Control', `private, max-age=${seconds}, stale-while-revalidate=${seconds * 4}`);
     next();
   };

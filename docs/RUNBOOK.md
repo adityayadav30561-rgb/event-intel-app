@@ -55,6 +55,18 @@ Render deploys from a Git repository.
 
 ---
 
+## Accounts (Phase 4)
+
+There's no public sign-up. Everyone signs in with an account the admin creates.
+
+- **Your admin account:** in Render → event-intel-api → Environment, set `ADMIN_EMAIL`, `ADMIN_PASSWORD` and `ADMIN_NAME` (you type the password there; it never goes in git or chat). On start the API creates the account if that email has none. It never changes an existing account, so after your first sign-in you can delete `ADMIN_PASSWORD`.
+- **Team members:** in the app, More → Team → Add Member. The app shows a one-time temporary password and a Share button for the sign-in details. On first sign-in they choose their own password.
+- **Forgotten password:** More → Team → the person → Reset Password (a new temporary password; they're signed out everywhere).
+- **Someone leaves:** More → Team → Remove Access. Their sessions end at once; the account is kept and can be restored.
+- **Sessions:** access tokens last 15 minutes and refresh silently; a phone that isn't opened for 60 days signs in again. A refresh token used twice ends that sign-in everywhere.
+- **Signing secret:** generated once and kept in the database. Setting `JWT_SECRET` (32+ characters) overrides it; changing either signs everyone out.
+- **Locally:** `apps/api/.env` (gitignored) holds a test admin for the embedded database; see `apps/api/.env.example`.
+
 ## Everyday commands
 
 ```bash

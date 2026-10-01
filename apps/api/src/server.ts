@@ -6,6 +6,7 @@ import { migrate } from './db/migrate';
 import { purgeDemoData, refreshDemoData, seedReference } from './db/seed';
 import { syncSourceRegistry } from './ingestion/registry';
 import { logger } from './lib/logger';
+import { AuthService } from './modules/auth/service';
 
 /** Boots the API: connect → migrate → seed reference data (+ sample events) → listen. */
 async function main() {
@@ -30,7 +31,10 @@ async function main() {
     if (removed) logger.info({ removed }, 'Removed sample events');
   }
 
-  const app = createApp(db, config);
+  const auth = await AuthService.create(db, config.JWT_SECRET);
+  if (await auth.bootstrapAdmin(config.ADMIN_EMAIL, config.ADMIN_PASSWORD, config.ADMIN_NAME)) logger.info({ email: config.ADMIN_EMAIL }, 'Created the admin account');
+
+  const app = createApp(db, config, auth);
   const server = app.listen(config.PORT, () => logger.info(`API listening on port ${config.PORT}`));
 
   const shutdown = (signal: string) => {

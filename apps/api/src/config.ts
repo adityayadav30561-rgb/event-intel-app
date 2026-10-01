@@ -15,6 +15,12 @@ const schema = z.object({
   CORS_ORIGINS: z.string().default(''),
   /** Shared secret the cron service sends to POST /internal/tick. */
   CRON_SECRET: z.string().optional(),
+  /** Signs access tokens. Optional: without it one is generated once and kept in the database. */
+  JWT_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(32).optional()),
+  /** First admin account, created on start if this email has no account yet (set in the host's dashboard, never in git). */
+  ADMIN_EMAIL: z.preprocess((v) => (v === '' ? undefined : v), z.string().email().optional()),
+  ADMIN_PASSWORD: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
+  ADMIN_NAME: z.preprocess((v) => (v === '' ? undefined : v), z.string().max(80).optional()),
   /** Seed and refresh clearly-labelled sample events (until real sources are connected in Phase 3). */
   DEMO_DATA: z
     .enum(['true', 'false'])

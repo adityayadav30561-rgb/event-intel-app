@@ -28,3 +28,22 @@ export async function shareEvent(event: EventSummary & { officialWebsite?: strin
     showToast("Couldn't share this event", 'alert-circle');
   }
 }
+
+/** Any short message through the share sheet (or copied, where sharing isn't available). */
+export async function shareMessage(title: string, text: string, copiedLabel = 'Copied') {
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title, text });
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      showToast(copiedLabel, 'copy');
+      return;
+    }
+    await Share.share({ title, message: text });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') return;
+    showToast("Couldn't share", 'alert-circle');
+  }
+}

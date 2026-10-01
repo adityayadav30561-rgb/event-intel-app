@@ -6,17 +6,23 @@ import { loadConfig } from '../src/config';
 import { createPgliteDb, type Db } from '../src/db/client';
 import { migrate } from '../src/db/migrate';
 import { refreshDemoData, seedReference } from '../src/db/seed';
+import { AuthService } from '../src/modules/auth/service';
 
 const SECRET = 'test-secret-value';
 let db: Db;
 let app: ReturnType<typeof createApp>;
+/** A signed-in admin's access token (test values only). */
+let token: string;
 
 beforeAll(async () => {
   db = await createPgliteDb('memory');
   await migrate(db);
   await seedReference(db);
   await refreshDemoData(db);
-  app = createApp(db, loadConfig({ NODE_ENV: 'test', CRON_SECRET: SECRET, DEMO_DATA: 'true' }));
+  const auth = await AuthService.create(db, 'test-signing-secret-of-at-least-32-chars');
+  await auth.bootstrapAdmin('admin@test.local', 'test-admin-password', 'Test Admin');
+  app = createApp(db, loadConfig({ NODE_ENV: 'test', CRON_SECRET: SECRET, DEMO_DATA: 'true' }), auth);
+  token = (await request(app).post('/v1/auth/login').send({ email: 'admin@test.local', password: 'test-admin-password' })).body.accessToken;
 });
 
 afterAll(async () => {
@@ -24,7 +30,7 @@ afterAll(async () => {
 });
 
 const get = async <T>(path: string) => {
-  const res = await request(app).get(path);
+  const res = await request(app).get(path).set('Authorization', `Bearer ${token}`);
   return { status: res.status, body: res.body as T, headers: res.headers };
 };
 
@@ -226,7 +232,7 @@ describe('internal tick', () => {
 
 describe('security headers and CORS', () => {
   it('allows the app origin and refuses others', async () => {
-    const ok = await request(app).get('/v1/categories').set('Origin', 'https://event-intelligence-india.expo.app');
+    const ok = await request(app).get('/v1/categories').set('Origin', 'https://event-intelligence-india.expo.app').set('Authorization', `Bearer ${token}`);
     expect(ok.headers['access-control-allow-origin']).toBe('https://event-intelligence-india.expo.app');
     const evil = await request(app).get('/v1/categories').set('Origin', 'https://evil.example.com');
     expect(evil.headers['access-control-allow-origin']).toBeUndefined();

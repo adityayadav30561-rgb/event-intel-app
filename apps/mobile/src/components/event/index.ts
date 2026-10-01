@@ -4,3 +4,4 @@ export * from './DateTile';
 export * from './EventCards';
 export * from './meta';
 export * from './StatusBadge';
+export * from './RelevanceBadge';
