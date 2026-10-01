@@ -19,14 +19,14 @@ Trial run of all ten (fresh database, 1 Oct 2026): **412 events read → 69 impo
 | `express-computer` | Express Computer (Indian Express B2B) | CIO "Technology Senate" events in Amritsar, Chandigarh, Hyderabad | Public iCalendar feed | Organizer's own feed; robots has no rules; no terms found. |
 | `odoo-india` | Odoo events, India | Odoo academies and partner events (e.g. Manufacturing Academy, Chennai) | Event pages' schema.org data | robots allows the pages we read; no website terms on odoo.com/legal. |
 | `zoho-events` | Zoho events platform | Zoho ERP/CRM/Payroll events and summits in Indian cities (+ online sessions) | Sitemap + schema.org data; non-India events dropped | robots allows all; no scraping clause in Zoho's terms. |
-| `dev-events-india` | dev.events India page | Tech conferences: Black Hat India, Gartner IT Symposium, MongoDB.local, AWS Community Days, AVAR… | schema.org data on the page | robots allows all; no terms page. |
 | `konfhub` | KonfHub (Indian ticketing) | Occasional tech community events (DevFest, BSides); most listings are sports/culture and are filtered out | Sitemap + schema.org data | robots + llms.txt explicitly allow crawling; terms forbid commercial resale only. |
 | `confs-tech` | confs.tech | A few Indian developer/AI conferences | Open JSON on GitHub | MIT-licensed open data. |
 | `iicc-yashobhoomi` | Yashobhoomi (IICC), Dwarka, Delhi — iiccnewdelhi.com | India Mobile Congress, CPHI India, India Mining Week, ALUCAST, Light + LED, Pharmaceutical Congress… (14 of 19 in the next 12 months) | Event cards on the venue's list page (its own 12-month date filter); each card links to the event's website | Venue operator's official site; robots allows all; no terms of use published. One page per run. |
-| `biec` | BIEC, Bengaluru | IMTEX / Tooltech, Bengaluru Tech Summit, Electronica–Productronica, AgriCon… | Event cards on the venue calendar (one page, all years; past ones dropped) | Official venue site; robots allows all; no terms of use published. One page per run. |
 | `nasscom` | NASSCOM events | NASSCOM's own and partner events in India (few: about 1–4 at a time; events abroad and multi-city programmes are dropped) | Event cards on the events page, filtered by the site to upcoming + ongoing | Official organizer site; robots allows /events; no terms of use found. One page per run. |
 
 The last three have no feed or structured data, so they're read from the page layout ("event cards", `apps/api/src/ingestion/extract/cards.ts`). Each source's selectors are a few lines in the registry; if a site is redesigned the source reads 0 events and its health shows the failure, and only those selectors need updating. Test a source any time with `npm run cli -w @eii/api -- try-source <id>`.
+
+**Blocked on the server (1 Oct 2026):** `biec` and `dev-events-india` read fine from an office connection but answer **HTTP 403** to our hosted server (Render, Singapore), i.e. they refuse cloud servers. We don't route around that (no proxies, no other IPs), so both are off and their events go in the team sheet. Their definitions stay in the registry; they can be switched back on if either site allows our bot (it identifies itself and links to the app's About page).
 
 ## Tier B — possible, needs your decision
 
