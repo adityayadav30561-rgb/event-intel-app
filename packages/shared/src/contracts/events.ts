@@ -73,6 +73,17 @@ export type SyncStatus = {
   status: 'up_to_date' | 'stale' | 'never';
   lastRunStatus: string | null;
   intervalHours: number;
+  /** Health of each source that's switched on (live mode). */
+  sources?: SourceHealth[];
+};
+
+export type SourceHealth = {
+  id: string;
+  name: string;
+  health: string;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+  eventsFound: number;
 };
 
 export type OrganizerProfile = {

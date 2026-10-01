@@ -1,4 +1,4 @@
-import type { EventDetail, EventSummary, HomeFeed, Page } from '@eii/shared';
+import type { EventDetail, EventSummary, HomeFeed, Page, SyncStatus } from '@eii/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
@@ -46,6 +46,14 @@ describe('setup', () => {
     const { status, body } = await get<{ status: string }>('/health');
     expect(status).toBe(200);
     expect(body.status).toBe('ok');
+  });
+
+  it('reports each switched-on source’s health with the sync status', async () => {
+    await db.query(`insert into sources (id, name, adapter, kind, config, priority, enabled, trusted, health, last_error) values ('venue-x', 'Venue X', 'cards', 'official_venue', '{}', 70, true, true, 'failed', 'HTTP 403')`);
+    await db.query(`insert into sources (id, name, adapter, kind, config, priority, enabled, trusted) values ('off-x', 'Off X', 'ics', 'official_venue', '{}', 70, false, true)`);
+    const { body } = await get<SyncStatus>('/v1/sync/status');
+    expect(body.sources).toEqual([{ id: 'venue-x', name: 'Venue X', health: 'failed', lastSuccessAt: null, lastError: 'HTTP 403', eventsFound: 0 }]);
+    await db.query(`delete from sources where id in ('venue-x', 'off-x')`);
   });
 
   it('migrations and the sample seed are idempotent', async () => {
