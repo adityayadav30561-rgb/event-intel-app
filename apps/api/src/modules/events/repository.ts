@@ -166,6 +166,16 @@ export class EventRepository {
     return rows.map(toSummary);
   }
 
+  /** Summaries of specific events, past ones included (a person's tracked events). */
+  async byIds(ids: string[]): Promise<EventSummary[]> {
+    if (!ids.length) return [];
+    const sql = new Sql();
+    sql.and('o.deleted_at is null');
+    sql.and(`o.id = any(${sql.param(ids)}::text[])`);
+    const rows = await this.db.query<SummaryRow>(`select ${SUMMARY_COLUMNS} ${SUMMARY_FROM} ${sql.whereClause()} order by o.start_at asc`, sql.params);
+    return rows.map(toSummary);
+  }
+
   async categoryCounts(cityIds: string[] | undefined, now: Date): Promise<{ id: string; count: number }[]> {
     const sql = new Sql();
     visible(sql);

@@ -7,8 +7,11 @@ import { DateTile } from './DateTile';
 import { endOf, openEvent, startOf } from './meta';
 import { StatusBadge } from './StatusBadge';
 
-/** Chronological row with a calendar date tile — for "This Week" and the calendar agenda. */
-export function CompactEventRow({ event, showCountdown = true }: { event: EventSummary; showCountdown?: boolean }) {
+/**
+ * Chronological row with a calendar date tile — for "This Week", the calendar agenda and My Events.
+ * `note` replaces the countdown line (e.g. "Visit confirmed · In 4 days").
+ */
+export function CompactEventRow({ event, showCountdown = true, note }: { event: EventSummary; showCountdown?: boolean; note?: string }) {
   const { colors } = useTheme();
   const countdown = showCountdown ? formatCountdown(startOf(event), endOf(event)) : undefined;
   const place = event.attendanceMode === 'online' ? 'Online' : event.city;
@@ -27,7 +30,11 @@ export function CompactEventRow({ event, showCountdown = true }: { event: EventS
         <Text variant="subheadline" tone="secondary" numberOfLines={1}>
           {place} · {EVENT_TYPE_LABELS[event.eventType]}
         </Text>
-        {event.status !== 'upcoming' ? (
+        {note ? (
+          <Text variant="footnoteStrong" tone="secondary" numberOfLines={1}>
+            {note}
+          </Text>
+        ) : event.status !== 'upcoming' ? (
           <View style={styles.badge}>
             <StatusBadge status={event.status} />
           </View>

@@ -9,6 +9,7 @@ import { Avatar, Button, ListGroup, ListRow, Sheet, Text } from '@/components/ui
 import { BUILD } from '@/constants/build';
 import { usePreferences, useSignOut } from '@/hooks/useAccount';
 import { useSyncStatus } from '@/hooks/useEvents';
+import { usePackIndex } from '@/services/offlinePacks';
 import { placeName, usePlaceStore } from '@/store/placeStore';
 import { useCurrentUser } from '@/store/sessionStore';
 import { radius, spacing, useTheme } from '@/theme';
@@ -22,6 +23,7 @@ export function MoreScreen() {
   const user = useCurrentUser();
   const interests = describePreferences(usePreferences().data, 1);
   const signOut = useSignOut();
+  const packCount = Object.keys(usePackIndex((s) => s.packs)).length;
   const sync = useSyncStatus().data;
   const dataDetail = !sync ? undefined : sync.mode === 'sample' ? 'Sample' : sync.lastUpdatedAt ? `Updated ${formatRelativePast(new Date(sync.lastUpdatedAt))}` : 'Not yet updated';
   const showInstall = Platform.OS === 'web' && !isInstalledWebApp();
@@ -49,6 +51,10 @@ export function MoreScreen() {
             <ListRow icon="sparkles" iconColor={colors.orange} title="Interests" detail={interests ?? 'None'} onPress={() => router.push('/settings/interests')} />
             <ListRow icon="key" iconColor={colors.gray} title="Password" onPress={() => router.push('/settings/password')} />
             {user?.role === 'admin' ? <ListRow icon="people" iconColor={colors.blue} title="Team" onPress={() => router.push('/settings/team')} /> : null}
+          </ListGroup>
+
+          <ListGroup>
+            <ListRow icon="cloud-download" iconColor={colors.indigo} title="Offline Storage" detail={packCount ? `${packCount} ${packCount === 1 ? 'event' : 'events'}` : 'None'} onPress={() => router.push('/settings/offline')} />
           </ListGroup>
 
           <ListGroup footer="Used for Home and Calendar. Explore has its own location filter.">

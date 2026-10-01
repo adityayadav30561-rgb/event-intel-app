@@ -1,6 +1,7 @@
 import type { EventQuery, HomeQuery } from '@eii/shared';
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { eventRepository } from '@/repositories';
+import { getPack, refreshPackIfSaved } from '@/services/offlinePacks';
 
 /** Server-state hooks (TanStack Query). Screens use these; they never call repositories directly. */
 
@@ -30,8 +31,23 @@ export function useEventSearch(query: Omit<EventQuery, 'cursor'>, enabled = true
   });
 }
 
+/** An event's details; with no connection, its offline pack (if saved) stands in. */
 export function useEvent(id: string | undefined) {
-  return useQuery({ queryKey: eventKeys.detail(id ?? ''), queryFn: () => eventRepository.get(id ?? ''), enabled: Boolean(id) });
+  return useQuery({
+    queryKey: eventKeys.detail(id ?? ''),
+    queryFn: async () => {
+      try {
+        const event = await eventRepository.get(id ?? '');
+        if (event) void refreshPackIfSaved(event);
+        return event;
+      } catch (error) {
+        const pack = id ? await getPack(id) : undefined;
+        if (pack) return pack.event;
+        throw error;
+      }
+    },
+    enabled: Boolean(id),
+  });
 }
 
 export function useRelatedEvents(id: string | undefined) {

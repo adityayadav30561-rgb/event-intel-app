@@ -10,6 +10,7 @@ import { OfflineBanner, ToastHost } from '@/components/ui';
 import { InstallPrompt } from '@/components/ui/InstallPrompt';
 import { registerServiceWorker } from '@/platform/serviceWorker';
 import { useMeSync } from '@/hooks/useAccount';
+import { useTrackingLifecycle } from '@/hooks/useTracking';
 import { AppProviders } from '@/providers/AppProviders';
 import { useCurrentUser, useSessionStage } from '@/store/sessionStore';
 import { useTheme } from '@/theme';
@@ -28,6 +29,7 @@ function RootStack() {
   const stage = useSessionStage();
   const isAdmin = useCurrentUser()?.role === 'admin';
   useMeSync();
+  useTrackingLifecycle();
   const quiet = { animation: 'fade', gestureEnabled: false } as const;
   return (
     <Stack
@@ -58,12 +60,15 @@ function RootStack() {
         <Stack.Screen name="event/[id]/agenda" />
         <Stack.Screen name="event/[id]/speakers" />
         <Stack.Screen name="event/[id]/exhibitors" />
+        <Stack.Screen name="event/[id]/checklist" />
+        <Stack.Screen name="event/[id]/note" />
         <Stack.Screen name="organizer/[id]" />
         <Stack.Screen name="category/[id]" />
         <Stack.Screen name="browse/[section]" />
         <Stack.Screen name="about" />
         <Stack.Screen name="settings/interests" />
         <Stack.Screen name="settings/password" />
+        <Stack.Screen name="settings/offline" />
         <Stack.Protected guard={isAdmin}>
           <Stack.Screen name="settings/team" />
         </Stack.Protected>

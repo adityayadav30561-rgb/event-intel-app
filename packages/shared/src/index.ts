@@ -11,3 +11,4 @@ export * from './feeds/related';
 export * from './format';
 export * from './contracts/account';
 export * from './relevance/relevance';
+export * from './contracts/tracking';

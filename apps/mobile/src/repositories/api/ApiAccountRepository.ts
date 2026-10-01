@@ -1,4 +1,4 @@
-import type { AuthSession, Me, Preferences, Role, TeamMember, TemporaryPassword } from '@eii/shared';
+import type { AuthSession, Me, PlannedVisitor, Preferences, Role, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
 import type { AccountRepository, RankedEvent } from '../types';
 import type { ApiClient } from './client';
 
@@ -52,5 +52,13 @@ export class ApiAccountRepository implements AccountRepository {
 
   updateMember(id: string, input: { isActive?: boolean; role?: Role; resetPassword?: true }): Promise<{ member: TeamMember; temporaryPassword?: string }> {
     return this.api.request(`/admin/users/${encodeURIComponent(id)}`, { method: 'PATCH', body: input });
+  }
+
+  syncTracking(changes: TrackingChange[]): Promise<TrackingSnapshot> {
+    return this.api.request('/me/sync', { method: 'POST', body: { changes } });
+  }
+
+  async visitors(eventId: string): Promise<PlannedVisitor[]> {
+    return (await this.api.request<{ items: PlannedVisitor[] }>(`/events/${encodeURIComponent(eventId)}/visitors`)).items;
   }
 }

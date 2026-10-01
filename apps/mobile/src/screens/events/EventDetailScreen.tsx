@@ -21,6 +21,7 @@ import { Animated, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Artwork, EventTile, RelevanceBadge, StatusBadge } from '@/components/event';
 import { FloatingControls, goBack } from '@/components/layout/LargeTitle';
+import { TrackingPanel } from '@/components/tracking/TrackingPanel';
 import { Avatar, EmptyState, ErrorState, IconButton, ListGroup, ListRow, SectionHeader, Skeleton, Text } from '@/components/ui';
 import { useRelevance } from '@/hooks/useAccount';
 import { useEvent, useRelatedEvents } from '@/hooks/useEvents';
@@ -76,6 +77,7 @@ export function EventDetailScreen() {
           <Header event={e} />
           <Actions event={e} />
           <KeyFacts event={e} />
+          <TrackingPanel event={e} />
           <WhyItMatches event={e} />
           <Changes event={e} />
           <About event={e} />

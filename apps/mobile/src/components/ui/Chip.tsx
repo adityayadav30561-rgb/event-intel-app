@@ -21,6 +21,7 @@ export function Chip({ label, selected, menu, icon, onPress }: Props) {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      aria-selected={selected}
       accessibilityLabel={label}
       style={({ pressed }) => [
         styles.chip,

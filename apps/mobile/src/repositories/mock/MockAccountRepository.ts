@@ -1,19 +1,27 @@
 import {
+  applyTrackingChange,
   EMPTY_PREFERENCES,
+  EMPTY_TRACKING,
   rankByRelevance,
   type AuthSession,
+  type EventDetail,
   type EventSummary,
   type Me,
+  type PlannedVisitor,
   type Preferences,
   type Role,
   type TeamMember,
   type TemporaryPassword,
+  type TrackingChange,
+  type TrackingSnapshot,
+  type TrackingState,
 } from '@eii/shared';
 import { safeStorage } from '@/lib/storage';
 import type { AccountRepository, EventRepository, RankedEvent } from '../types';
 
 const PREFS_KEY = 'eii.sample.preferences';
 const ME_KEY = 'eii.sample.me';
+const TRACKING_KEY = 'eii.sample.tracking';
 const DAY = 86_400_000;
 
 const delay = <T>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value), 250));
@@ -99,6 +107,29 @@ export class MockAccountRepository implements AccountRepository {
     };
     this.members.push(member);
     return delay({ member, temporaryPassword: 'sample-temp-pass' });
+  }
+
+  /** The "server" copy lives on this device; the same latest-wins rules apply. */
+  async syncTracking(changes: TrackingChange[]): Promise<TrackingSnapshot> {
+    const saved = safeStorage.getItem(TRACKING_KEY);
+    const state = changes.reduce(applyTrackingChange, saved ? (JSON.parse(saved as string) as TrackingState) : EMPTY_TRACKING);
+    safeStorage.setItem(TRACKING_KEY, JSON.stringify(state));
+    const ids = [...new Set([...Object.keys(state.tracking), ...Object.keys(state.notes), ...Object.keys(state.checklist)])];
+    const events = (await Promise.all(ids.map((id) => this.events.get(id)))).filter((e): e is EventDetail => Boolean(e));
+    return delay({
+      tracking: Object.values(state.tracking),
+      notes: Object.values(state.notes),
+      checklist: Object.values(state.checklist).flatMap((items) => Object.values(items)),
+      events,
+      serverTime: new Date().toISOString(),
+    });
+  }
+
+  async visitors(eventId: string): Promise<PlannedVisitor[]> {
+    const saved = safeStorage.getItem(TRACKING_KEY);
+    const status = saved ? (JSON.parse(saved as string) as TrackingState).tracking[eventId]?.status : null;
+    const me = this.loadMe();
+    return delay(status && status !== 'not_visited' ? [{ name: me.name, status, isYou: true }] : []);
   }
 
   async updateMember(id: string, input: { isActive?: boolean; role?: Role; resetPassword?: true }): Promise<{ member: TeamMember; temporaryPassword?: string }> {

@@ -14,6 +14,8 @@ import { eventRoutes } from './modules/events/routes';
 import { EventService } from './modules/events/service';
 import { internalRoutes } from './modules/internal/routes';
 import { meRoutes } from './modules/me/routes';
+import { trackingRoutes } from './modules/tracking/routes';
+import { TrackingService } from './modules/tracking/service';
 import { syncRoutes } from './modules/sync/routes';
 import { taxonomyRoutes } from './modules/taxonomy/routes';
 
@@ -57,6 +59,7 @@ export function createApp(db: Db, config: Config, auth: AuthService) {
   v1.use(requireAuth(auth));
   v1.use(accountRoutes(auth));
   v1.use(meRoutes(db, auth, events));
+  v1.use(trackingRoutes(new TrackingService(db, events.repo)));
   v1.use(eventRoutes(events));
   v1.use(taxonomyRoutes(db, events));
   v1.use(syncRoutes(db, config));

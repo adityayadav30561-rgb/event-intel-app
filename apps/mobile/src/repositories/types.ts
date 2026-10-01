@@ -1,4 +1,4 @@
-import type { AuthSession, CityCount, EventDetail, EventQuery, EventSummary, HomeFeed, HomeQuery, Me, OrganizerProfile, Page, Preferences, Relevance, Role, SyncStatus, TeamMember, TemporaryPassword } from '@eii/shared';
+import type { AuthSession, CityCount, EventDetail, EventQuery, EventSummary, HomeFeed, HomeQuery, Me, OrganizerProfile, Page, Preferences, Relevance, Role, PlannedVisitor, SyncStatus, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
 
 /**
  * Everything the app needs from an event data source. Screens never see which implementation
@@ -31,4 +31,8 @@ export interface AccountRepository {
   team(): Promise<TeamMember[]>;
   addMember(input: { name: string; email: string; role: Role }): Promise<TemporaryPassword>;
   updateMember(id: string, input: { isActive?: boolean; role?: Role; resetPassword?: true }): Promise<{ member: TeamMember; temporaryPassword?: string }>;
+  /** Sends queued tracking changes (none = just refresh) and returns the server's copy. */
+  syncTracking(changes: TrackingChange[]): Promise<TrackingSnapshot>;
+  /** Team members planning to go to an event. */
+  visitors(eventId: string): Promise<PlannedVisitor[]>;
 }

@@ -223,3 +223,20 @@ export function formatCountdown(start: Date, end: Date, now: Date = new Date()):
   if (days < 60) return `In ${days} days`;
   return undefined;
 }
+
+const isoDay = (d: Date) => {
+  const p = istParts(d);
+  return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+};
+
+/** The event's calendar days in India ("2026-11-12", …), at most `max` (for picking a visit day). */
+export function istEventDays(start: Date, end: Date, max = 14): string[] {
+  const days: string[] = [];
+  for (let i = 0; i < Math.min(eventDayCount(start, end), max); i++) days.push(isoDay(istStartOfDay(start, i)));
+  return days;
+}
+
+/** A calendar day ("2026-11-12") as "Thu, 12 Nov". */
+export function formatIsoDay(day: string): string {
+  return formatWeekdayDate(new Date(`${day}T12:00:00+05:30`));
+}

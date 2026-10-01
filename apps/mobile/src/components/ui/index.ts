@@ -14,3 +14,4 @@ export * from './States';
 export * from './Text';
 export * from './Toast';
 export * from './FormField';
+export * from './Toggle';

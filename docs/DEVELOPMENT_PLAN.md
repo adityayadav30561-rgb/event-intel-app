@@ -40,7 +40,8 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
 | 2 Backend and database | ✅ Done and deployed (1 Oct 2026) | API on Render (Singapore), Neon database, cron-job.org tick every 10 min; app reads live API |
 | 3 Event data pipeline | ✅ Built and tested (1 Oct 2026) | Readers for calendar feeds, structured page data, sitemaps, open data, venue/association event cards (IICC Yashobhoomi, BIEC, NASSCOM) and a team sheet; cleanup, dedupe, change detection, 12-hour sync; 47 API tests; 69 real events from 10 sources in a trial. Sources are switched on in Render (docs/SOURCES.md) |
 | 4 Sign-in, onboarding, interests, relevance | ✅ Built and tested (2 Oct 2026) | Team accounts (admin adds people with one-time passwords), rotating sessions, choose-your-password, onboarding, Interests, match badges with reasons, Home "For You"; 61 API + 36 shared tests |
-| 5–9 | Not started | |
+| 5 Tracking and offline | ✅ Built and tested (2 Oct 2026) | Save, Follow, visit status (planning → visited), visit day, travel notes, one note and a checklist per event, My Events (Saved · Following · Planned · Visited · Past), "Did you visit?", team "Also going", offline event packs, offline app shell; changes queue on the phone and sync with ids and latest-wins per field; 72 API + 40 shared tests |
+| 6–9 | Not started | |
 
 ### Pending (agreed 1 Oct 2026, picked up after the current phase)
 
@@ -74,6 +75,9 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
 | `npm run user:create` for accounts; user management in Phase 8 | First admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD` in Render; More → Team (add, reset password, remove access) now | The free host has no shell to run commands on, and adding a colleague shouldn't need one |
 | Relevance computed on the server per request | The same shared rules run on the phone (badges, "Why it matches you") and on the server ("For You") | Works offline, re-ranks the moment interests change, and keeps event responses cacheable |
 | Refresh token in an HttpOnly cookie | Refresh token in the app's storage, rotated on every use with reuse detection | App and API are on different sites, and iPhone Safari blocks cross-site cookies |
+| LocalStore with one table per kind | One tracking store on the phone (IndexedDB): the last server copy plus a queue of unsent changes, replayed with the same pure function the tests cover | Simple to reason about: what you see is always the server copy with your unsent edits on top |
+| Checklist defaults stored per event | The eight suggested items are shown for every event and stored only once ticked or removed | No rows for untouched checklists; suggested wording can improve without migrating data |
+| /me/events, /me/events/:id/tracking, notes and checklist endpoints | GET /me/tracking and POST /me/sync (a batch of changes) plus GET /events/:id/visitors | One sync call carries everything an offline phone queued; fewer requests on the free tier |
 | /health checks the database | /health is liveness only; `/health?db=1` for a deep check | Health checks and pings must not wake the free database (100 compute-hours/month) |
 
 ## 1. Summary of decisions
