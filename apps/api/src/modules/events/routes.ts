@@ -1,7 +1,8 @@
-import { eventQuerySchema, homeQuerySchema } from '@eii/shared';
+import { eventQuerySchema, homeQuerySchema, mapQuerySchema } from '@eii/shared';
 import { Router } from 'express';
 import { z } from 'zod';
 import { cacheFor, notFound, parse } from '../../lib/http';
+import { mapData } from './map';
 import type { EventService } from './service';
 
 const id = z.string().min(1).max(120);
@@ -15,7 +16,12 @@ export function eventRoutes(events: EventService): Router {
   });
 
   router.get('/events', cacheFor(30), async (req, res) => {
-    res.json(await events.list(parse(eventQuerySchema, req.query)));
+    res.json(await events.list(parse(eventQuerySchema, req.query), new Date(), req.auth?.id));
+  });
+
+  router.get('/events/map', cacheFor(30), async (req, res) => {
+    const { west, south, east, north, zoom, ...filters } = parse(mapQuerySchema, req.query);
+    res.json(await mapData(events.repo, filters, { west, south, east, north }, zoom));
   });
 
   router.get('/events/search', cacheFor(30), async (req, res) => {

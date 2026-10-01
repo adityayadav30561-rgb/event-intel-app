@@ -2,6 +2,7 @@ import {
   datePresetRange,
   DEFAULT_PAGE_SIZE,
   expandCityIds,
+  zoneStates,
   queryTokens,
   type EventDetail,
   type EventQuery,
@@ -44,11 +45,40 @@ export function toTsQuery(q: string | undefined): string | undefined {
   return tokens.map((t) => (t.length <= 3 ? t : `${t}:*`)).join(' & ');
 }
 
-function applyFilters(sql: Sql, query: EventQuery, now: Date) {
+/** Great-circle distance in km from a point to the event's venue (or its city when the venue has no coordinates). */
+function distanceSql(sql: Sql, lat: number, lng: number): string {
+  const pLat = sql.param(lat);
+  const pLng = sql.param(lng);
+  const latExpr = 'coalesce(v.latitude, c.latitude)';
+  const lngExpr = 'coalesce(v.longitude, c.longitude)';
+  return `(6371 * acos(least(1, cos(radians(${pLat})) * cos(radians(${latExpr})) * cos(radians(${lngExpr}) - radians(${pLng})) + sin(radians(${pLat})) * sin(radians(${latExpr})))))`;
+}
+
+/** Adds the query's filters; returns the distance expression when the query is "near me". */
+function applyFilters(sql: Sql, query: EventQuery, now: Date): { distance?: string } {
   visible(sql);
   if (!query.includePast) sql.and(`o.end_at >= ${sql.param(now)}`);
   const cities = expandCityIds(query.cityIds);
-  if (cities) sql.and(`o.city_id = any(${sql.param([...cities])}::text[])`);
+  const states = zoneStates(query.cityIds);
+  // A zone also covers cities that sources added later, by their state.
+  if (cities && states.length) sql.and(`(o.city_id = any(${sql.param([...cities])}::text[]) or c.state = any(${sql.param(states)}::text[]))`);
+  else if (cities) sql.and(`o.city_id = any(${sql.param([...cities])}::text[])`);
+  else if (states.length) sql.and(`c.state = any(${sql.param(states)}::text[])`);
+  if (query.attendanceModes?.length) sql.and(`o.attendance_mode = any(${sql.param(query.attendanceModes)}::text[])`);
+  if (query.price === 'free') sql.and('o.price_min = 0');
+  if (query.price === 'paid') sql.and('o.price_min > 0');
+  let distance: string | undefined;
+  if (query.lat !== undefined && query.lng !== undefined) {
+    const km = query.radiusKm ?? 50;
+    sql.and(`o.attendance_mode <> 'online'`);
+    // Cheap bounding box first, exact distance second.
+    const degLat = km / 111;
+    const degLng = km / (111 * Math.max(Math.cos((query.lat * Math.PI) / 180), 0.1));
+    sql.and(`coalesce(v.latitude, c.latitude) between ${sql.param(query.lat - degLat)} and ${sql.param(query.lat + degLat)}`);
+    sql.and(`coalesce(v.longitude, c.longitude) between ${sql.param(query.lng - degLng)} and ${sql.param(query.lng + degLng)}`);
+    distance = distanceSql(sql, query.lat, query.lng);
+    sql.and(`${distance} <= ${sql.param(km)}`);
+  }
   const topic = (table: string, column: string, ids: string[] | undefined) => {
     if (ids?.length) sql.and(`exists (select 1 from ${table} t where t.occurrence_id = o.id and t.${column} = any(${sql.param(ids)}::text[]))`);
   };
@@ -66,6 +96,7 @@ function applyFilters(sql: Sql, query: EventQuery, now: Date) {
     sql.and(`o.start_at < ${sql.param(range.to)}`);
     sql.and(`o.end_at >= ${sql.param(range.from)}`);
   }
+  return { distance };
 }
 
 const SORTS = {
@@ -95,7 +126,7 @@ export class EventRepository {
 
   private async listInternal(query: EventQuery, now: Date, mode: 'fts' | 'fuzzy'): Promise<Page<EventSummary>> {
     const sql = new Sql();
-    applyFilters(sql, query, now);
+    const { distance } = applyFilters(sql, query, now);
     const tsq = toTsQuery(query.q);
     let rank = '0';
     let tsParam: string | undefined;
@@ -109,7 +140,10 @@ export class EventRepository {
     }
 
     const limit = query.limit ?? DEFAULT_PAGE_SIZE;
-    const sortName = query.sort ?? (tsq ? 'relevance' : 'date');
+    // "Best for you" is ranked in the service; nearest-first needs a location.
+    const requested = query.sort === 'match' || (query.sort === 'distance' && !distance) ? undefined : query.sort;
+    const sortName = requested ?? (tsq ? 'relevance' : 'date');
+    const byOffset = sortName === 'relevance' || sortName === 'distance';
     const cursor = decodeCursor(query.cursor);
     // Snapshot for the count before ordering adds parameters the count doesn't use.
     const countSql = `select count(*)::int as total ${SUMMARY_FROM} ${sql.whereClause()}`;
@@ -127,25 +161,28 @@ export class EventRepository {
     let orderBy: string;
     if (sortName === 'relevance') {
       orderBy = `${rank} desc, o.start_at asc, o.id asc`;
+    } else if (sortName === 'distance') {
+      orderBy = 'distance_km asc, o.start_at asc, o.id asc';
     } else {
-      const sort = SORTS[sortName];
+      const sort = SORTS[sortName as keyof typeof SORTS];
       orderBy = sort.order;
       if (cursor && 'k' in cursor) sql.and(`(${sort.key}, o.id) ${sort.dir} (${sql.param(cursor.k[0])}::timestamptz, ${sql.param(cursor.k[1])})`);
     }
-    const offset = sortName === 'relevance' && cursor && 'o' in cursor ? cursor.o : 0;
+    const offset = byOffset && cursor && 'o' in cursor ? cursor.o : 0;
+    const columns = distance ? `${SUMMARY_COLUMNS}, ${distance} as distance_km` : SUMMARY_COLUMNS;
 
     const rows = await this.db.query<SummaryRow>(
-      `select ${SUMMARY_COLUMNS} ${SUMMARY_FROM} ${sql.whereClause()} order by ${orderBy} limit ${sql.param(limit + 1)} offset ${sql.param(offset)}`,
+      `select ${columns} ${SUMMARY_FROM} ${sql.whereClause()} order by ${orderBy} limit ${sql.param(limit + 1)} offset ${sql.param(offset)}`,
       sql.params,
     );
     const hasMore = rows.length > limit;
     const items = rows.slice(0, limit);
     let nextCursor: string | null = null;
     if (hasMore) {
-      if (sortName === 'relevance') nextCursor = encodeCursor({ o: offset + limit });
+      if (sortName === 'relevance' || sortName === 'distance') nextCursor = encodeCursor({ o: offset + limit });
       else {
         const last = items[items.length - 1]!;
-        nextCursor = encodeCursor({ k: [iso(last[SORTS[sortName].col]), last.id] });
+        nextCursor = encodeCursor({ k: [iso(last[SORTS[sortName as keyof typeof SORTS].col]), last.id] });
       }
     }
     // Counting costs a second query, so only the first page reports a total.
@@ -164,6 +201,28 @@ export class EventRepository {
       sql.params,
     );
     return rows.map(toSummary);
+  }
+
+  /** Events with a place on the map inside a box, with the same filters as the list (at most `limit`). */
+  async mapPoints(
+    query: EventQuery,
+    box: { west: number; south: number; east: number; north: number },
+    limit: number,
+    now: Date,
+  ): Promise<{ id: string; title: string; start_at: Date; end_at: Date; event_type: string; city: string; lat: number; lng: number }[]> {
+    const sql = new Sql();
+    applyFilters(sql, query, now);
+    const tsq = toTsQuery(query.q);
+    if (tsq) sql.and(`o.search_vector @@ to_tsquery('simple', ${sql.param(tsq)})`);
+    sql.and(`o.attendance_mode <> 'online'`);
+    sql.and(`coalesce(v.latitude, c.latitude) between ${sql.param(box.south)} and ${sql.param(box.north)}`);
+    sql.and(`coalesce(v.longitude, c.longitude) between ${sql.param(box.west)} and ${sql.param(box.east)}`);
+    return this.db.query(
+      `select o.id, o.title, o.start_at, o.end_at, o.event_type, c.name as city,
+         coalesce(v.latitude, c.latitude)::float8 as lat, coalesce(v.longitude, c.longitude)::float8 as lng
+       ${SUMMARY_FROM} ${sql.whereClause()} order by o.start_at asc limit ${sql.param(limit)}`,
+      sql.params,
+    );
   }
 
   /** Summaries of specific events, past ones included (a person's tracked events). */

@@ -41,7 +41,8 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
 | 3 Event data pipeline | ✅ Built and tested (1 Oct 2026) | Readers for calendar feeds, structured page data, sitemaps, open data, venue/association event cards (IICC Yashobhoomi, BIEC, NASSCOM) and a team sheet; cleanup, dedupe, change detection, 12-hour sync; 47 API tests; 69 real events from 10 sources in a trial. Sources are switched on in Render (docs/SOURCES.md) |
 | 4 Sign-in, onboarding, interests, relevance | ✅ Built and tested (2 Oct 2026) | Team accounts (admin adds people with one-time passwords), rotating sessions, choose-your-password, onboarding, Interests, match badges with reasons, Home "For You"; 61 API + 36 shared tests |
 | 5 Tracking and offline | ✅ Built and tested (2 Oct 2026) | Save, Follow, visit status (planning → visited), visit day, travel notes, one note and a checklist per event, My Events (Saved · Following · Planned · Visited · Past), "Did you visit?", team "Also going", offline event packs, offline app shell; changes queue on the phone and sync with ids and latest-wins per field; 72 API + 40 shared tests |
-| 6–9 | Not started | |
+| 6 Discovery depth | ✅ Built and tested (2 Oct 2026) | Natural search ("ERP conferences in Hyderabad" → chips), North/South/East/West/Central zones, Filters sheet (technology, industry, attendance, price, match level), Sort (date, best for you, nearest, newest, updated), Near Me (10–100 km, asked only on tap), map with server-side clusters (MapLibre + OpenFreeMap, free), saved searches, recent searches, collections on Home; 81 API + 49 shared tests |
+| 7–9 | Not started | |
 
 ### Pending (agreed 1 Oct 2026, picked up after the current phase)
 
@@ -52,7 +53,7 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
   - **South:** Hyderabad (HICC/HITEX, where HITEX needs written permission), Chennai Trade Centre, Kochi, Coimbatore (CODISSIA).
   - **East:** Kolkata (Biswa Bangla, Science City), Bhubaneswar, Guwahati.
 - Target: a healthy number of upcoming events in every zone. Show the count per zone in the sync status.
-- In the app: browse and filter by zone (North / East / South / West), next to cities, so each region's events are easy to look through.
+- In the app: browse and filter by zone. **Done in Phase 6**: North, South, East, West and Central India in the location picker, in natural search ("events in South India") and as Home collections. Still to do: the sources above.
 
 **Sources waiting on a decision or on someone else** (details in docs/SOURCES.md):
 - **Team Google Sheet:** template to be shared. Covers events from sites that block bots: SAP, Oracle, AWS, ServiceNow, Microsoft, FICCI, CII, ET, and BIEC and dev.events (below).
@@ -78,6 +79,9 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
 | LocalStore with one table per kind | One tracking store on the phone (IndexedDB): the last server copy plus a queue of unsent changes, replayed with the same pure function the tests cover | Simple to reason about: what you see is always the server copy with your unsent edits on top |
 | Checklist defaults stored per event | The eight suggested items are shown for every event and stored only once ticked or removed | No rows for untouched checklists; suggested wording can improve without migrating data |
 | /me/events, /me/events/:id/tracking, notes and checklist endpoints | GET /me/tracking and POST /me/sync (a batch of changes) plus GET /events/:id/visitors | One sync call carries everything an offline phone queued; fewer requests on the free tier |
+| Custom date range picker | Presets plus months in natural search ("Odoo December") | Covers how the team actually asks; a calendar picker can follow if missed |
+| Speaker, exhibitor and city pages | City and zone lists through Explore and Collections; speaker and exhibitor pages left for later | Real sources rarely list speakers or exhibitors yet |
+| Map tiles (unspecified) | OpenFreeMap vector tiles through MapLibre GL, loaded only when the map opens | Free with no key or limits, commercial use allowed, Apple-like light and dark styles |
 | /health checks the database | /health is liveness only; `/health?db=1` for a deep check | Health checks and pings must not wake the free database (100 compute-hours/month) |
 
 ## 1. Summary of decisions

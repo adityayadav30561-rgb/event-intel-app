@@ -1,4 +1,4 @@
-import { getCategory, type EventQuery, type EventSummary } from '@eii/shared';
+import { getCategory, getCollection, type EventQuery, type EventSummary } from '@eii/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -16,11 +16,16 @@ const SECTIONS: Record<string, { title: string; query: Omit<EventQuery, 'cityIds
   updated: { title: 'Recently Updated', query: { sort: 'recently_updated' } },
 };
 
-/** "See All" lists from Home, and category pages. Respects the location chosen on Home. */
-function EventListScreen({ title, query }: { title: string; query: Omit<EventQuery, 'cityIds'> }) {
+/**
+ * "See All" lists from Home, category pages and collections. Respects the location chosen on
+ * Home, unless the list is about a place itself (a collection like "South India").
+ */
+function EventListScreen({ title, query, subtitle }: { title: string; query: Omit<EventQuery, 'cursor' | 'limit'>; subtitle?: string }) {
   const { colors } = useTheme();
-  const place = usePlaceStore((s) => s.place);
-  const fullQuery = useMemo(() => ({ ...query, cityIds: placeCityIds(place) }), [query, place]);
+  const homePlace = usePlaceStore((s) => s.place);
+  const ownPlace = Boolean(query.cityIds?.length);
+  const place = ownPlace ? undefined : homePlace;
+  const fullQuery = useMemo(() => (ownPlace ? query : { ...query, cityIds: placeCityIds(homePlace) }), [query, ownPlace, homePlace]);
   const results = useEventSearch(fullQuery);
   const items = useMemo(() => results.data?.pages.flatMap((p) => p.items) ?? [], [results.data]);
   const total = results.data?.pages[0]?.total;
@@ -31,8 +36,7 @@ function EventListScreen({ title, query }: { title: string; query: Omit<EventQue
       back
       listHeader={
         <Text variant="subheadline" tone="secondary" style={styles.sub}>
-          {placeName(place)}
-          {total !== undefined ? ` · ${total} ${total === 1 ? 'event' : 'events'}` : ''}
+          {[subtitle ?? (place ? placeName(place) : undefined), total !== undefined ? `${total} ${total === 1 ? 'event' : 'events'}` : undefined].filter(Boolean).join(' · ')}
         </Text>
       }
       data={items}
@@ -50,7 +54,11 @@ function EventListScreen({ title, query }: { title: string; query: Omit<EventQue
         ) : results.isError ? (
           <ErrorState onRetry={() => results.refetch()} />
         ) : (
-          <EmptyState icon="calendar-clear-outline" title="Nothing Here Yet" message={`No events in ${placeName(place)} for this list. Try changing the location on Home.`} />
+          <EmptyState
+            icon="calendar-clear-outline"
+            title="Nothing Here Yet"
+            message={place ? `No events in ${placeName(place)} for this list. Try changing the location on Home.` : 'No upcoming events in this list yet. New events are checked twice a day.'}
+          />
         )
       }
       ListFooterComponent={results.isFetchingNextPage ? <ActivityIndicator style={styles.footer} color={colors.secondaryLabel} /> : null}
@@ -68,6 +76,14 @@ export function CategoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const query = useMemo(() => ({ categoryIds: id ? [id] : undefined, sort: 'date' as const }), [id]);
   return <EventListScreen title={getCategory(id ?? '')?.name ?? 'Category'} query={query} />;
+}
+
+/** A curated collection (§72). */
+export function CollectionScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const collection = getCollection(id ?? '');
+  if (!collection) return <EmptyState icon="albums-outline" title="Collection Not Found" message="It may have been renamed." />;
+  return <EventListScreen title={collection.name} query={collection.query} subtitle={collection.description} />;
 }
 
 const styles = StyleSheet.create({

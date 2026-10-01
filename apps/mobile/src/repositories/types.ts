@@ -1,4 +1,4 @@
-import type { AuthSession, CityCount, EventDetail, EventQuery, EventSummary, HomeFeed, HomeQuery, Me, OrganizerProfile, Page, Preferences, Relevance, Role, PlannedVisitor, SyncStatus, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
+import type { AuthSession, CityCount, EventDetail, EventQuery, EventSummary, HomeFeed, HomeQuery, Me, OrganizerProfile, Page, Preferences, Relevance, Role, MapQuery, MapResponse, PlannedVisitor, SavedSearch, SavedSearchQuery, SyncStatus, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
 
 /**
  * Everything the app needs from an event data source. Screens never see which implementation
@@ -13,6 +13,8 @@ export interface EventRepository {
   organizer(id: string): Promise<OrganizerProfile | null>;
   cityCounts(): Promise<CityCount[]>;
   syncStatus(): Promise<SyncStatus>;
+  /** Pins and clusters inside a box, with the same filters as search. */
+  map(query: MapQuery): Promise<MapResponse>;
 }
 
 export type RankedEvent = EventSummary & { relevance: Relevance };
@@ -35,4 +37,8 @@ export interface AccountRepository {
   syncTracking(changes: TrackingChange[]): Promise<TrackingSnapshot>;
   /** Team members planning to go to an event. */
   visitors(eventId: string): Promise<PlannedVisitor[]>;
+  savedSearches(): Promise<SavedSearch[]>;
+  createSavedSearch(input: { name: string; query: SavedSearchQuery; notify?: boolean }): Promise<SavedSearch>;
+  updateSavedSearch(id: string, input: { name?: string; query?: SavedSearchQuery; notify?: boolean }): Promise<SavedSearch>;
+  deleteSavedSearch(id: string): Promise<void>;
 }

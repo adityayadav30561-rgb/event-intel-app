@@ -12,3 +12,7 @@ export * from './format';
 export * from './contracts/account';
 export * from './relevance/relevance';
 export * from './contracts/tracking';
+export * from './taxonomy/zones';
+export * from './search/natural';
+export * from './feeds/collections';
+export * from './search/mapClusters';

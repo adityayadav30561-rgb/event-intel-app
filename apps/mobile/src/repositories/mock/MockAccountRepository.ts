@@ -10,6 +10,8 @@ import {
   type PlannedVisitor,
   type Preferences,
   type Role,
+  type SavedSearch,
+  type SavedSearchQuery,
   type TeamMember,
   type TemporaryPassword,
   type TrackingChange,
@@ -22,6 +24,7 @@ import type { AccountRepository, EventRepository, RankedEvent } from '../types';
 const PREFS_KEY = 'eii.sample.preferences';
 const ME_KEY = 'eii.sample.me';
 const TRACKING_KEY = 'eii.sample.tracking';
+const SEARCHES_KEY = 'eii.sample.searches';
 const DAY = 86_400_000;
 
 const delay = <T>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value), 250));
@@ -123,6 +126,39 @@ export class MockAccountRepository implements AccountRepository {
       events,
       serverTime: new Date().toISOString(),
     });
+  }
+
+  private loadSearches(): SavedSearch[] {
+    const saved = safeStorage.getItem(SEARCHES_KEY);
+    return saved ? (JSON.parse(saved as string) as SavedSearch[]) : [];
+  }
+
+  private storeSearches(list: SavedSearch[]) {
+    safeStorage.setItem(SEARCHES_KEY, JSON.stringify(list));
+  }
+
+  async savedSearches(): Promise<SavedSearch[]> {
+    return delay(this.loadSearches());
+  }
+
+  async createSavedSearch(input: { name: string; query: SavedSearchQuery; notify?: boolean }): Promise<SavedSearch> {
+    const now = new Date().toISOString();
+    const saved: SavedSearch = { id: `ss_${Date.now()}`, name: input.name, query: input.query, notify: input.notify ?? true, createdAt: now, updatedAt: now };
+    this.storeSearches([saved, ...this.loadSearches()]);
+    return delay(saved);
+  }
+
+  async updateSavedSearch(id: string, input: { name?: string; query?: SavedSearchQuery; notify?: boolean }): Promise<SavedSearch> {
+    const list = this.loadSearches();
+    const current = list.find((s) => s.id === id);
+    if (!current) throw new Error('Saved search not found');
+    const next = { ...current, ...Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined)), updatedAt: new Date().toISOString() } as SavedSearch;
+    this.storeSearches(list.map((s) => (s.id === id ? next : s)));
+    return delay(next);
+  }
+
+  async deleteSavedSearch(id: string): Promise<void> {
+    this.storeSearches(this.loadSearches().filter((s) => s.id !== id));
   }
 
   async visitors(eventId: string): Promise<PlannedVisitor[]> {

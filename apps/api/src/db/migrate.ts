@@ -3,6 +3,7 @@ import { sql as init } from './migrations/001_init';
 import { sql as ingestion } from './migrations/002_ingestion';
 import { sql as users } from './migrations/003_users';
 import { sql as tracking } from './migrations/004_tracking';
+import { sql as savedSearches } from './migrations/005_saved_searches';
 
 /** Ordered migrations, embedded in the bundle so the server can migrate itself on start. */
 const MIGRATIONS: { id: string; sql: string }[] = [
@@ -10,6 +11,7 @@ const MIGRATIONS: { id: string; sql: string }[] = [
   { id: '002_ingestion', sql: ingestion },
   { id: '003_users', sql: users },
   { id: '004_tracking', sql: tracking },
+  { id: '005_saved_searches', sql: savedSearches },
 ];
 
 /** Arbitrary constant for the advisory lock: only one instance migrates at a time. */

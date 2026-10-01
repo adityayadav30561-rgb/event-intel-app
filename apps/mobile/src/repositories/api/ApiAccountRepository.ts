@@ -1,4 +1,4 @@
-import type { AuthSession, Me, PlannedVisitor, Preferences, Role, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
+import type { AuthSession, Me, PlannedVisitor, SavedSearch, SavedSearchQuery, Preferences, Role, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
 import type { AccountRepository, RankedEvent } from '../types';
 import type { ApiClient } from './client';
 
@@ -56,6 +56,22 @@ export class ApiAccountRepository implements AccountRepository {
 
   syncTracking(changes: TrackingChange[]): Promise<TrackingSnapshot> {
     return this.api.request('/me/sync', { method: 'POST', body: { changes } });
+  }
+
+  async savedSearches(): Promise<SavedSearch[]> {
+    return (await this.api.request<{ items: SavedSearch[] }>('/me/saved-searches')).items;
+  }
+
+  createSavedSearch(input: { name: string; query: SavedSearchQuery; notify?: boolean }): Promise<SavedSearch> {
+    return this.api.request('/me/saved-searches', { method: 'POST', body: input });
+  }
+
+  updateSavedSearch(id: string, input: { name?: string; query?: SavedSearchQuery; notify?: boolean }): Promise<SavedSearch> {
+    return this.api.request(`/me/saved-searches/${encodeURIComponent(id)}`, { method: 'PATCH', body: input });
+  }
+
+  async deleteSavedSearch(id: string): Promise<void> {
+    await this.api.request(`/me/saved-searches/${encodeURIComponent(id)}`, { method: 'DELETE' });
   }
 
   async visitors(eventId: string): Promise<PlannedVisitor[]> {

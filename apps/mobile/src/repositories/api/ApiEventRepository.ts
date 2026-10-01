@@ -1,4 +1,4 @@
-import type { CityCount, EventDetail, EventQuery, EventSummary, HomeFeed, HomeQuery, OrganizerProfile, Page, SyncStatus } from '@eii/shared';
+import type { CityCount, EventDetail, EventQuery, EventSummary, HomeFeed, HomeQuery, MapQuery, MapResponse, OrganizerProfile, Page, SyncStatus } from '@eii/shared';
 import type { EventRepository } from '../types';
 import { ApiError, type ApiClient, type Params } from './client';
 
@@ -46,5 +46,9 @@ export class ApiEventRepository implements EventRepository {
 
   syncStatus(): Promise<SyncStatus> {
     return this.request('/sync/status');
+  }
+
+  map(query: MapQuery): Promise<MapResponse> {
+    return this.request('/events/map', query as Params);
   }
 }

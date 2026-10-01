@@ -1,13 +1,10 @@
 import {
   CATEGORIES,
-  EMPTY_PREFERENCES,
   INDUSTRIES,
   preferencesSchema,
   rankByRelevance,
   TECHNOLOGIES,
   updateMeSchema,
-  type EventType,
-  type Preferences,
 } from '@eii/shared';
 import { Router } from 'express';
 import { z } from 'zod';
@@ -15,6 +12,7 @@ import type { Db } from '../../db/client';
 import { HttpError, parse } from '../../lib/http';
 import type { AuthService } from '../auth/service';
 import type { EventService } from '../events/service';
+import { loadPreferences } from './preferences';
 
 const known = {
   categoryIds: new Set(CATEGORIES.map((t) => t.id)),
@@ -22,14 +20,6 @@ const known = {
   industryIds: new Set(INDUSTRIES.map((t) => t.id)),
 };
 
-export async function loadPreferences(db: Db, userId: string): Promise<Preferences> {
-  const [row] = await db.query<{ city_ids: string[]; category_ids: string[]; technology_ids: string[]; industry_ids: string[]; event_types: EventType[] }>(
-    'select city_ids, category_ids, technology_ids, industry_ids, event_types from user_preferences where user_id = $1',
-    [userId],
-  );
-  if (!row) return EMPTY_PREFERENCES;
-  return { cityIds: row.city_ids, categoryIds: row.category_ids, technologyIds: row.technology_ids, industryIds: row.industry_ids, eventTypes: row.event_types };
-}
 
 /** The signed-in person's profile, interests and suggestions (docs/DEVELOPMENT_PLAN.md §7). */
 export function meRoutes(db: Db, auth: AuthService, events: EventService): Router {

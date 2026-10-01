@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { DATE_PRESETS } from '../dates';
-import { EVENT_TYPES } from '../domain/types';
+import { ATTENDANCE_MODES, EVENT_TYPES } from '../domain/types';
 import type { EventSummary, Organizer } from '../domain/types';
 
 /**
@@ -14,7 +14,8 @@ const csv = <T extends z.ZodType>(item: T) =>
     z.array(item).optional(),
   );
 
-export const EVENT_SORTS = ['date', 'relevance', 'recently_added', 'recently_updated'] as const;
+/** relevance: best text match · match: best fit for your interests · distance: nearest first (needs lat/lng). */
+export const EVENT_SORTS = ['date', 'relevance', 'match', 'distance', 'recently_added', 'recently_updated'] as const;
 export type EventSort = (typeof EVENT_SORTS)[number];
 
 export const eventQuerySchema = z.object({
@@ -25,6 +26,14 @@ export const eventQuerySchema = z.object({
   industryIds: csv(z.string().max(60)),
   eventTypes: csv(z.enum(EVENT_TYPES)),
   organizerId: z.string().max(80).optional(),
+  attendanceModes: csv(z.enum(ATTENDANCE_MODES)),
+  price: z.enum(['free', 'paid']).optional(),
+  /** Near a point (only when the person taps "Use my location"). */
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  radiusKm: z.coerce.number().min(1).max(500).optional(),
+  /** Only events matching your interests at least this well (signed-in person's interests). */
+  minMatch: z.enum(['strong', 'good', 'possible']).optional(),
   datePreset: z.enum(DATE_PRESETS).optional(),
   /** ISO dates; used when no preset is given. */
   from: z.iso.datetime().optional(),
@@ -91,3 +100,37 @@ export type OrganizerProfile = {
   upcoming: EventSummary[];
   past: EventSummary[];
 };
+
+/** GET /events/map: the visible box and zoom, plus the same filters as the list. */
+export const mapQuerySchema = eventQuerySchema.omit({ cursor: true, limit: true, sort: true }).extend({
+  west: z.coerce.number().min(-180).max(180),
+  south: z.coerce.number().min(-90).max(90),
+  east: z.coerce.number().min(-180).max(180),
+  north: z.coerce.number().min(-90).max(90),
+  zoom: z.coerce.number().min(0).max(22),
+});
+
+export type MapQuery = z.infer<typeof mapQuerySchema>;
+
+export type MapPin = { id: string; title: string; startAt: string; endAt: string; eventType: EventSummary['eventType']; city: string; lat: number; lng: number };
+export type MapCluster = {
+  key: string;
+  count: number;
+  lat: number;
+  lng: number;
+  /** Set when every event in the cluster is at the same point: list them instead of zooming. */
+  events?: MapPin[];
+  label?: string;
+};
+export type MapResponse = { pins: MapPin[]; clusters: MapCluster[]; total: number };
+
+/** A search you keep (§68): the typed text and filters, re-run when opened. */
+export const savedSearchQuerySchema = eventQuerySchema.omit({ cursor: true, limit: true, lat: true, lng: true, radiusKm: true });
+export type SavedSearchQuery = z.infer<typeof savedSearchQuerySchema>;
+export const savedSearchSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  query: savedSearchQuerySchema,
+  /** Alerts about new matches (sent from Phase 7). */
+  notify: z.boolean().default(true),
+});
+export type SavedSearch = { id: string; name: string; query: SavedSearchQuery; notify: boolean; createdAt: string; updatedAt: string };

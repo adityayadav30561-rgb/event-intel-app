@@ -20,7 +20,7 @@ const TIMEOUT_MS = 30_000;
 const REFRESH_MARGIN_MS = 30_000;
 
 export type Params = Record<string, string | number | boolean | string[] | undefined | null>;
-type Options = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH'; params?: Params; body?: unknown; auth?: boolean };
+type Options = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; params?: Params; body?: unknown; auth?: boolean };
 
 function toQueryString(params: Params = {}): string {
   const search = new URLSearchParams();

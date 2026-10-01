@@ -38,7 +38,7 @@ export function FloatingControls({ back, right }: { back?: boolean; right?: Reac
 }
 
 /** The page header: a top row for controls, the large title and an optional accessory. Part of the page; it scrolls away. */
-function PageHeader({ title, accessory, headerRight, back }: Pick<HeaderProps, 'title' | 'accessory' | 'headerRight' | 'back'>) {
+export function PageHeader({ title, accessory, headerRight, back }: Pick<HeaderProps, 'title' | 'accessory' | 'headerRight' | 'back'>) {
   const insets = useSafeAreaInsets();
   const rowHeight = useHeaderRowHeight();
   return (

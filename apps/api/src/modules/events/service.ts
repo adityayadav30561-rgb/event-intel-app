@@ -2,6 +2,8 @@ import {
   CATEGORIES,
   CITIES,
   datePresetRange,
+  DEFAULT_PAGE_SIZE,
+  scoreRelevance,
   expandCityIds,
   normalizeText,
   relatedEvents,
@@ -16,7 +18,13 @@ import {
   type Page,
 } from '@eii/shared';
 import type { Db } from '../../db/client';
+import { decodeCursor, encodeCursor } from '../../lib/cursor';
+import { loadPreferences } from '../me/preferences';
 import { EventRepository } from './repository';
+
+const LEVEL_RANK = { possible: 1, good: 2, strong: 3 } as const;
+/** "Best for you" ranks this many matching events; plenty for a team-sized list. */
+const MATCH_POOL = 500;
 
 const NOTABLE_TYPES = ['conference', 'summit', 'expo', 'exhibition', 'trade_show', 'industry_forum', 'convention'];
 
@@ -28,8 +36,24 @@ export class EventService {
     this.repo = new EventRepository(db);
   }
 
-  list(query: EventQuery, now = new Date()): Promise<Page<EventSummary>> {
-    return this.repo.list(query, now);
+  /** Event list. With `sort=match` or `minMatch`, ranked by the signed-in person's interests (§10.1). */
+  async list(query: EventQuery, now = new Date(), userId?: string): Promise<Page<EventSummary>> {
+    if (!userId || (query.sort !== 'match' && !query.minMatch)) return this.repo.list(query, now);
+    const prefs = await loadPreferences(this.db, userId);
+    const pool = await this.repo.list({ ...query, sort: query.sort === 'match' ? 'date' : query.sort, minMatch: undefined, cursor: undefined, limit: MATCH_POOL }, now);
+    let ranked = pool.items.map((event) => ({ event, relevance: scoreRelevance(event, prefs) }));
+    const min = query.minMatch;
+    if (min) ranked = ranked.filter((r) => r.relevance && LEVEL_RANK[r.relevance.level] >= LEVEL_RANK[min]);
+    if (query.sort === 'match') ranked.sort((a, b) => (b.relevance?.score ?? 0) - (a.relevance?.score ?? 0) || a.event.startAt.localeCompare(b.event.startAt));
+    const cursor = decodeCursor(query.cursor);
+    const offset = cursor && 'o' in cursor ? cursor.o : 0;
+    const limit = query.limit ?? DEFAULT_PAGE_SIZE;
+    const next = offset + limit;
+    return {
+      items: ranked.slice(offset, next).map((r) => r.event),
+      nextCursor: next < ranked.length ? encodeCursor({ o: next }) : null,
+      total: query.cursor ? undefined : ranked.length,
+    };
   }
 
   get(id: string): Promise<EventDetail | null> {

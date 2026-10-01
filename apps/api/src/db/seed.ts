@@ -1,4 +1,4 @@
-import { CATEGORIES, CITIES, EVENT_TYPE_LABELS, EVENT_TYPES, INDUSTRIES, istParts, REGIONS, TECHNOLOGIES, type Topic } from '@eii/shared';
+import { CATEGORIES, CITIES, COLLECTIONS, EVENT_TYPE_LABELS, EVENT_TYPES, INDUSTRIES, istParts, REGIONS, TECHNOLOGIES, type Topic } from '@eii/shared';
 import { generateDemoEvents } from '@eii/shared/demo';
 import { upsertEvent } from '../modules/events/writer';
 import type { Db } from './client';
@@ -40,11 +40,13 @@ export async function seedReference(db: Db): Promise<void> {
         [id, EVENT_TYPE_LABELS[id], i],
       );
     }
+    // Collections no longer in the list are hidden, not deleted.
+    await tx.query('update collections set is_active = false where not (id = any($1::text[]))', [COLLECTIONS.map((c) => c.id)]);
     for (const [i, c] of COLLECTIONS.entries()) {
       await tx.query(
         `insert into collections (id, name, description, filter, sort) values ($1, $2, $3, $4, $5)
-         on conflict (id) do update set name = excluded.name, description = excluded.description, filter = excluded.filter, sort = excluded.sort`,
-        [c.id, c.name, c.description, JSON.stringify(c.filter), i],
+         on conflict (id) do update set name = excluded.name, description = excluded.description, filter = excluded.filter, sort = excluded.sort, is_active = true`,
+        [c.id, c.name, c.description, JSON.stringify(c.query), i],
       );
     }
     await tx.query(
@@ -55,17 +57,6 @@ export async function seedReference(db: Db): Promise<void> {
   });
 }
 
-/** Curated collections (spec §72). Filters use the same shape as the /events query. */
-const COLLECTIONS = [
-  { id: 'sap-india', name: 'SAP Events India', description: 'Conferences, forums and meetups about SAP.', filter: { technologyIds: ['sap'] } },
-  { id: 'erp-india', name: 'ERP Events India', description: 'Enterprise software and ERP events.', filter: { categoryIds: ['erp'] } },
-  { id: 'odoo', name: 'Odoo Events', description: 'Meetups, workshops and partner days.', filter: { technologyIds: ['odoo'] } },
-  { id: 'manufacturing', name: 'Manufacturing Events', description: 'Expos and forums for manufacturers.', filter: { categoryIds: ['manufacturing'] } },
-  { id: 'tech-conferences', name: 'Technology Conferences', description: 'Conferences and summits.', filter: { eventTypes: ['conference', 'summit'] } },
-  { id: 'delhi-ncr', name: 'Delhi NCR Events', description: 'Delhi, Gurugram, Noida and nearby.', filter: { cityIds: ['delhi-ncr'] } },
-  { id: 'hyderabad', name: 'Hyderabad Events', description: 'Everything in Hyderabad.', filter: { cityIds: ['hyderabad'] } },
-  { id: 'goa', name: 'Goa Events', description: 'Conferences and retreats in Goa.', filter: { cityIds: ['goa'] } },
-];
 
 const istDay = (now: Date) => {
   const p = istParts(now);

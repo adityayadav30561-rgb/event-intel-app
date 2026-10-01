@@ -1,5 +1,7 @@
 import {
   buildHomeFeed,
+  clusterMapPoints,
+  getCity,
   indexEvents,
   istParts,
   relatedEvents,
@@ -11,6 +13,9 @@ import {
   type EventSummary,
   type HomeFeed,
   type HomeQuery,
+  type MapPin,
+  type MapQuery,
+  type MapResponse,
   type OrganizerProfile,
   type Page,
   type SyncStatus,
@@ -82,6 +87,18 @@ export class MockEventRepository implements EventRepository {
       if (e.verificationStatus === 'verified' && new Date(e.endAt) >= now) counts.set(e.cityId, (counts.get(e.cityId) ?? 0) + 1);
     }
     return delay([...counts.entries()].map(([cityId, count]) => ({ cityId, count })));
+  }
+
+  async map(query: MapQuery): Promise<MapResponse> {
+    const { west, south, east, north, zoom, ...filters } = query;
+    const page = runEventQuery(this.data().index, { ...filters, limit: 5000 }, new Date());
+    const pins: MapPin[] = page.items
+      .filter((e) => e.attendanceMode !== 'online')
+      .map((e) => ({ e, lat: e.venue?.latitude ?? getCity(e.cityId)?.latitude, lng: e.venue?.longitude ?? getCity(e.cityId)?.longitude }))
+      .filter((p): p is typeof p & { lat: number; lng: number } => p.lat !== undefined && p.lng !== undefined)
+      .filter((p) => p.lat >= south && p.lat <= north && p.lng >= west && p.lng <= east)
+      .map(({ e, lat, lng }) => ({ id: e.id, title: e.title, startAt: e.startAt, endAt: e.endAt, eventType: e.eventType, city: e.city, lat, lng }));
+    return delay(clusterMapPoints(pins, zoom));
   }
 
   async syncStatus(): Promise<SyncStatus> {

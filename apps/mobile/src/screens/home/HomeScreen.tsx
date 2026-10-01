@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { describeChange, describePreferences, formatRelativePast, getCategory, greetingFor, hasPreferences, STATUS_LABELS, type EventSummary, type HomeFeed } from '@eii/shared';
+import { COLLECTIONS, describeChange, describePreferences, type Collection, formatRelativePast, getCategory, greetingFor, hasPreferences, STATUS_LABELS, type EventSummary, type HomeFeed } from '@eii/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -157,6 +157,16 @@ function HomeSections({ feed, loading, featuredWidth, tileWidth, place, onChange
         </View>
       ) : null}
 
+      {/* Collections (§72): curated lists, including North, South, East and West India */}
+      <View style={styles.section}>
+        <SectionHeader title="Collections" />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelf}>
+          {COLLECTIONS.map((c) => (
+            <CollectionTile key={c.id} collection={c} />
+          ))}
+        </ScrollView>
+      </View>
+
       {/* Categories */}
       {feed && feed.categories.length > 0 ? (
         <View style={styles.section}>
@@ -277,6 +287,28 @@ function UpdatedRow({ event }: { event: EventSummary }) {
   );
 }
 
+function CollectionTile({ collection }: { collection: Collection }) {
+  return (
+    <PressableScale
+      onPress={() => router.push(`/collection/${collection.id}`)}
+      accessibilityRole="button"
+      accessibilityLabel={collection.name}
+      style={[styles.collectionTile, shadow.card]}
+    >
+      <Artwork artwork={{ palette: collection.palette, seed: collection.id.length * 7577 }} style={StyleSheet.absoluteFill} />
+      <Ionicons name={collection.icon as keyof typeof Ionicons.glyphMap} size={22} color="#FFFFFF" />
+      <View>
+        <Text variant="headline" tone="white" numberOfLines={2}>
+          {collection.name}
+        </Text>
+        <Text variant="footnote" style={styles.categoryCount} numberOfLines={2}>
+          {collection.description}
+        </Text>
+      </View>
+    </PressableScale>
+  );
+}
+
 function CategoryTile({ id, count, width }: { id: string; count: number; width: number }) {
   const category = getCategory(id);
   if (!category) return null;
@@ -323,6 +355,7 @@ const styles = StyleSheet.create({
   changeLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   flex: { flex: 1, minWidth: 0 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, gap: spacing.md },
+  collectionTile: { width: 200, height: 140, borderRadius: radius.lg, overflow: 'hidden', padding: spacing.md, justifyContent: 'space-between' },
   categoryTile: { height: 116, borderRadius: radius.lg, overflow: 'hidden', padding: spacing.md, justifyContent: 'space-between' },
   categoryCount: { color: 'rgba(255,255,255,0.85)', marginTop: 2 },
   sampleNote: { textAlign: 'center', marginTop: spacing.xxxl, paddingHorizontal: spacing.xxxl },

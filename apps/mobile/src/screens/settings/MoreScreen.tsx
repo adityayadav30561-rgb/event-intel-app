@@ -8,6 +8,7 @@ import { InstallGuideSheet, isInstalledWebApp } from '@/components/ui/InstallPro
 import { Avatar, Button, ListGroup, ListRow, Sheet, Text } from '@/components/ui';
 import { BUILD } from '@/constants/build';
 import { usePreferences, useSignOut } from '@/hooks/useAccount';
+import { useSavedSearches } from '@/hooks/useDiscovery';
 import { useSyncStatus } from '@/hooks/useEvents';
 import { usePackIndex } from '@/services/offlinePacks';
 import { placeName, usePlaceStore } from '@/store/placeStore';
@@ -24,6 +25,7 @@ export function MoreScreen() {
   const interests = describePreferences(usePreferences().data, 1);
   const signOut = useSignOut();
   const packCount = Object.keys(usePackIndex((s) => s.packs)).length;
+  const savedCount = useSavedSearches().data?.length ?? 0;
   const sync = useSyncStatus().data;
   const dataDetail = !sync ? undefined : sync.mode === 'sample' ? 'Sample' : sync.lastUpdatedAt ? `Updated ${formatRelativePast(new Date(sync.lastUpdatedAt))}` : 'Not yet updated';
   const showInstall = Platform.OS === 'web' && !isInstalledWebApp();
@@ -49,6 +51,7 @@ export function MoreScreen() {
 
           <ListGroup>
             <ListRow icon="sparkles" iconColor={colors.orange} title="Interests" detail={interests ?? 'None'} onPress={() => router.push('/settings/interests')} />
+            <ListRow icon="bookmark" iconColor={colors.orange} title="Saved Searches" detail={savedCount ? String(savedCount) : undefined} onPress={() => router.push('/settings/searches')} />
             <ListRow icon="key" iconColor={colors.gray} title="Password" onPress={() => router.push('/settings/password')} />
             {user?.role === 'admin' ? <ListRow icon="people" iconColor={colors.blue} title="Team" onPress={() => router.push('/settings/team')} /> : null}
           </ListGroup>

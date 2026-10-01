@@ -181,6 +181,8 @@ export type EventSummary = {
   lastChange?: Pick<EventChange, 'field' | 'detectedAt'>;
   createdAt: string;
   updatedAt: string;
+  /** Kilometres from the person, when they asked for events near them. */
+  distanceKm?: number;
   /** Synthetic sample data; never presented as a verified real-world event. */
   isDemo: boolean;
 };

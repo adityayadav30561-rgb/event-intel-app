@@ -65,10 +65,12 @@ function RootStack() {
         <Stack.Screen name="organizer/[id]" />
         <Stack.Screen name="category/[id]" />
         <Stack.Screen name="browse/[section]" />
+        <Stack.Screen name="collection/[id]" />
         <Stack.Screen name="about" />
         <Stack.Screen name="settings/interests" />
         <Stack.Screen name="settings/password" />
         <Stack.Screen name="settings/offline" />
+        <Stack.Screen name="settings/searches" />
         <Stack.Protected guard={isAdmin}>
           <Stack.Screen name="settings/team" />
         </Stack.Protected>

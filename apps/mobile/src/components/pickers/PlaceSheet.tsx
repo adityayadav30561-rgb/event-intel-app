@@ -1,4 +1,4 @@
-import { CITIES, normalizeText, REGIONS } from '@eii/shared';
+import { CITIES, normalizeText, REGIONS, ZONES, zoneOfState } from '@eii/shared';
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SearchField, Sheet } from '@/components/ui';
@@ -33,6 +33,13 @@ export function PlaceSheet({ visible, onClose, value, onChange, allowAny }: Prop
 
     const top: Option<Place | null>[] = [];
     if (!q) top.push(allowAny ? { value: null, label: 'Any Location', icon: 'globe-outline' } : { value: { kind: 'india' }, label: 'All India', icon: 'globe-outline' });
+    const zoneCount = (id: string) => CITIES.filter((c) => zoneOfState(c.state)?.id === id).reduce((sum, c) => sum + (countOf.get(c.id) ?? 0), 0);
+    const zones: Option<Place | null>[] = ZONES.filter((z) => matches(z.name, [z.short])).map((z) => ({
+      value: { kind: 'zone', id: z.id },
+      label: z.name,
+      detail: label(zoneCount(z.id)),
+      icon: 'compass-outline',
+    }));
     const regions: Option<Place | null>[] = REGIONS.filter((r) => matches(r.name, r.aliases)).map((r) => ({
       value: { kind: 'region', id: r.id },
       label: r.name,
@@ -46,7 +53,9 @@ export function PlaceSheet({ visible, onClose, value, onChange, allowAny }: Prop
       .map(cityOption);
 
     return [
-      { options: [...top, ...regions] },
+      { options: top },
+      { header: q ? undefined : 'Regions', options: zones },
+      { header: q ? undefined : 'Metro Areas', options: regions },
       { header: q ? undefined : 'Popular Cities', options: popular },
       { header: q ? undefined : 'More Cities', options: others },
     ].filter((g) => g.options.length > 0);
