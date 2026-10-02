@@ -1,5 +1,10 @@
 import {
   applyTrackingChange,
+  DEFAULT_NOTIFICATION_SETTINGS,
+  type AppNotification,
+  type CalendarLinks,
+  type NotificationSettings,
+  type Reminder,
   EMPTY_PREFERENCES,
   EMPTY_TRACKING,
   rankByRelevance,
@@ -159,6 +164,55 @@ export class MockAccountRepository implements AccountRepository {
 
   async deleteSavedSearch(id: string): Promise<void> {
     this.storeSearches(this.loadSearches().filter((s) => s.id !== id));
+  }
+
+  // Sample mode has no server to push from: alerts and calendar files need the live API.
+  private reminderList: Reminder[] = [];
+
+  async pushKey(): Promise<string> {
+    throw new Error('Alerts need the live server.');
+  }
+
+  async registerPush(): Promise<void> {}
+
+  async unregisterPush(): Promise<void> {}
+
+  async testPush(): Promise<void> {
+    throw new Error('Alerts need the live server.');
+  }
+
+  async notificationSettings(): Promise<NotificationSettings> {
+    return delay(DEFAULT_NOTIFICATION_SETTINGS);
+  }
+
+  async saveNotificationSettings(settings: NotificationSettings): Promise<NotificationSettings> {
+    return delay(settings);
+  }
+
+  async notifications(): Promise<{ items: AppNotification[]; unread: number; nextBefore: string | null }> {
+    return delay({ items: [], unread: 0, nextBefore: null });
+  }
+
+  async markNotificationsRead(): Promise<void> {}
+
+  async reminders(): Promise<Reminder[]> {
+    return delay(this.reminderList);
+  }
+
+  async addReminder(eventId: string, offsetMinutes: number): Promise<Reminder[]> {
+    const event = await this.events.get(eventId);
+    if (event && !this.reminderList.some((r) => r.eventId === eventId && r.offsetMinutes === offsetMinutes)) {
+      this.reminderList.push({ id: `rem_${Date.now()}`, eventId, offsetMinutes, remindAt: new Date(new Date(event.startAt).getTime() - offsetMinutes * 60_000).toISOString(), sentAt: null, event });
+    }
+    return delay(this.reminderList);
+  }
+
+  async removeReminder(id: string): Promise<void> {
+    this.reminderList = this.reminderList.filter((r) => r.id !== id);
+  }
+
+  async calendarLinks(): Promise<CalendarLinks> {
+    throw new Error('Calendar files need the live server.');
   }
 
   async visitors(eventId: string): Promise<PlannedVisitor[]> {

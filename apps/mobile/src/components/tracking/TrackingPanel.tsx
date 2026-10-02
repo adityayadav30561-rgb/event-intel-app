@@ -1,10 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { formatIsoDay, istEventDays, VISIT_STATUS_LABELS, VISIT_STATUSES, type EventDetail, type VisitStatus } from '@eii/shared';
+import { formatIsoDay, istEventDays, REMINDER_OFFSETS, reminderLabel, VISIT_STATUS_LABELS, VISIT_STATUSES, type EventDetail, type VisitStatus } from '@eii/shared';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Button, ListGroup, ListRow, Sheet, showToast, Text, Toggle as Switch } from '@/components/ui';
+import { useReminders, useToggleReminder } from '@/hooks/useAlerts';
 import { useNow } from '@/hooks/useNow';
+import { errorMessage } from '@/lib/errors';
+import { accountRepository } from '@/repositories';
+import { openExternal } from '@/services/links';
 import { trackingActions, useChecklist, useNote, useTracked, useVisitors } from '@/hooks/useTracking';
 import { removePack, savePack, useHasPack } from '@/services/offlinePacks';
 import { radius, spacing, typography, useTheme } from '@/theme';
@@ -30,7 +34,9 @@ export function TrackingPanel({ event }: { event: EventDetail }) {
   const note = useNote(event.id);
   const offline = useHasPack(event.id);
   const others = (useVisitors(event.id).data ?? []).filter((v) => !v.isYou);
-  const [sheet, setSheet] = useState<'status' | 'day' | 'travel' | null>(null);
+  const [sheet, setSheet] = useState<'status' | 'day' | 'travel' | 'remind' | 'calendar' | null>(null);
+  const myReminders = (useReminders().data ?? []).filter((r) => r.eventId === event.id && !r.sentAt);
+  const toggleReminder = useToggleReminder(event.id);
   const now = useNow();
 
   const status = tracked?.status ?? null;
@@ -101,6 +107,16 @@ export function TrackingPanel({ event }: { event: EventDetail }) {
           detail={note ? undefined : 'Add'}
           onPress={() => router.push(`/event/${event.id}/note`)}
         />
+        {!ended ? (
+          <ListRow
+            icon="alarm"
+            iconColor={colors.blue}
+            title="Remind Me"
+            detail={myReminders.length ? myReminders.map((r) => reminderLabel(r.offsetMinutes).replace(' before', '')).join(', ') : 'Off'}
+            onPress={() => setSheet('remind')}
+          />
+        ) : null}
+        {!ended ? <ListRow icon="calendar" iconColor={colors.red} title="Add to Calendar" onPress={() => setSheet('calendar')} /> : null}
         <ListRow
           icon="cloud-download"
           iconColor={colors.indigo}
@@ -142,6 +158,31 @@ export function TrackingPanel({ event }: { event: EventDetail }) {
         </View>
       </Sheet>
 
+      <Sheet visible={sheet === 'remind'} onClose={() => setSheet(null)} title="Remind Me">
+        <View style={styles.sheetBody}>
+          <ListGroup separatorInset={spacing.lg} footer="Reminders arrive as alerts (turn them on in More → Notifications) and always appear in the inbox. They follow the event if its date changes.">
+            {REMINDER_OFFSETS.filter((o) => new Date(event.startAt).getTime() - o.minutes * 60_000 > now).map((o) => {
+              const existing = myReminders.find((r) => r.offsetMinutes === o.minutes);
+              return (
+                <ListRow
+                  key={o.minutes}
+                  title={o.label}
+                  trailing={existing ? <Ionicons name="checkmark" size={20} color={colors.tint} /> : undefined}
+                  onPress={() =>
+                    toggleReminder.mutate(
+                      { offsetMinutes: o.minutes, existing },
+                      { onError: (error) => showToast(errorMessage(error), 'alert-circle') },
+                    )
+                  }
+                />
+              );
+            })}
+          </ListGroup>
+        </View>
+      </Sheet>
+
+      <CalendarSheet visible={sheet === 'calendar'} eventId={event.id} onClose={() => setSheet(null)} />
+
       <TravelNotesSheet visible={sheet === 'travel'} initial={tracked?.travelNotes ?? ''} onClose={() => setSheet(null)} onSave={actions.setTravelNotes} />
     </View>
   );
@@ -164,6 +205,34 @@ function SaveToggle({ icon, label, active, onPress }: { icon: 'bookmark' | 'noti
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+/** Add to the phone's calendar (§51): the calendar file, or Google Calendar. Asked for only on tap. */
+function CalendarSheet({ visible, eventId, onClose }: { visible: boolean; eventId: string; onClose: () => void }) {
+  const [busy, setBusy] = useState<'ics' | 'google' | null>(null);
+  const open = async (kind: 'ics' | 'google') => {
+    setBusy(kind);
+    try {
+      const links = await accountRepository.calendarLinks(eventId);
+      if (kind === 'ics') window.location.href = links.icsUrl;
+      else openExternal(links.googleUrl);
+      onClose();
+    } catch (error) {
+      showToast(errorMessage(error), 'alert-circle');
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <Sheet visible={visible} onClose={onClose} title="Add to Calendar" actionLabel="Cancel">
+      <View style={styles.sheetBody}>
+        <ListGroup separatorInset={spacing.lg} footer="Your phone shows the event first, so you can check it before adding.">
+          <ListRow icon="calendar" iconColor="#FF3B30" title={busy === 'ics' ? 'Opening…' : 'Calendar (iPhone, Outlook)'} onPress={() => void open('ics')} />
+          <ListRow icon="logo-google" iconColor="#4285F4" title={busy === 'google' ? 'Opening…' : 'Google Calendar'} onPress={() => void open('google')} />
+        </ListGroup>
+      </View>
+    </Sheet>
   );
 }
 

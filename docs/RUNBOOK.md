@@ -67,6 +67,14 @@ There's no public sign-up. Everyone signs in with an account the admin creates.
 - **Signing secret:** generated once and kept in the database. Setting `JWT_SECRET` (32+ characters) overrides it; changing either signs everyone out.
 - **Locally:** `apps/api/.env` (gitignored) holds a test admin for the embedded database; see `apps/api/.env.example`.
 
+## Alerts (Phase 7)
+
+- **Keys:** the Web Push key pair is generated on the first start and kept in the database. Setting `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` overrides it; changing keys means everyone turns alerts on again.
+- **iPhone:** alerts work only in the installed app (opened from the Home Screen, iOS 16.4+), after tapping **Turn On Alerts** (onboarding or More → Notifications). **Send a Test** there confirms the device receives them.
+- **When alerts go out:** changes and new matches right after each sync (every 12 hours); reminders within about 10 minutes of their time; "starts tomorrow" once each evening after 6 PM IST.
+- **Rules:** everything goes to the inbox; at most 3 non-critical pushes per person per day; quiet hours (default 9 PM–8 AM) hold non-critical ones; cancellations, postponements, date changes and reminders always come through; the same alert is never sent twice.
+- **Calendar files:** "Add to Calendar" opens a signed link to `/calendar/<event>.ics` on the API (valid for a day), so the phone's calendar can read it without signing in.
+
 ## Everyday commands
 
 ```bash

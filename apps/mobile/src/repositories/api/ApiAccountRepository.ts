@@ -1,4 +1,4 @@
-import type { AuthSession, Me, PlannedVisitor, SavedSearch, SavedSearchQuery, Preferences, Role, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
+import type { AppNotification, CalendarLinks, NotificationSettings, Reminder, AuthSession, Me, PlannedVisitor, SavedSearch, SavedSearchQuery, Preferences, Role, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
 import type { AccountRepository, RankedEvent } from '../types';
 import type { ApiClient } from './client';
 
@@ -72,6 +72,54 @@ export class ApiAccountRepository implements AccountRepository {
 
   async deleteSavedSearch(id: string): Promise<void> {
     await this.api.request(`/me/saved-searches/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  }
+
+  async pushKey(): Promise<string> {
+    return (await this.api.request<{ publicKey: string }>('/push/key')).publicKey;
+  }
+
+  async registerPush(subscription: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<void> {
+    await this.api.request('/me/push-subscriptions', { method: 'POST', body: subscription });
+  }
+
+  async unregisterPush(endpoint: string): Promise<void> {
+    await this.api.request('/me/push-subscriptions/remove', { method: 'POST', body: { endpoint } });
+  }
+
+  async testPush(): Promise<void> {
+    await this.api.request('/me/push-test', { method: 'POST', body: {} });
+  }
+
+  notificationSettings(): Promise<NotificationSettings> {
+    return this.api.request('/me/notification-settings');
+  }
+
+  saveNotificationSettings(settings: NotificationSettings): Promise<NotificationSettings> {
+    return this.api.request('/me/notification-settings', { method: 'PUT', body: settings });
+  }
+
+  notifications(before?: string): Promise<{ items: AppNotification[]; unread: number; nextBefore: string | null }> {
+    return this.api.request('/me/notifications', { params: { before } });
+  }
+
+  async markNotificationsRead(ids?: string[]): Promise<void> {
+    await this.api.request('/me/notifications/read', { method: 'POST', body: ids ? { ids } : {} });
+  }
+
+  async reminders(): Promise<Reminder[]> {
+    return (await this.api.request<{ items: Reminder[] }>('/me/reminders')).items;
+  }
+
+  async addReminder(eventId: string, offsetMinutes: number): Promise<Reminder[]> {
+    return (await this.api.request<{ items: Reminder[] }>('/me/reminders', { method: 'POST', body: { eventId, offsetMinutes } })).items;
+  }
+
+  async removeReminder(id: string): Promise<void> {
+    await this.api.request(`/me/reminders/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  }
+
+  calendarLinks(eventId: string): Promise<CalendarLinks> {
+    return this.api.request(`/events/${encodeURIComponent(eventId)}/calendar`);
   }
 
   async visitors(eventId: string): Promise<PlannedVisitor[]> {

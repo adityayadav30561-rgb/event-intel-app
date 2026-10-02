@@ -13,6 +13,8 @@ import {
   openEvent,
 } from '@/components/event';
 import { LargeTitleScrollView } from '@/components/layout/LargeTitle';
+import { EventDayCards } from '@/components/tracking/EventDayCard';
+import { BellButton } from '@/components/ui/BellButton';
 import { PlaceButton } from '@/components/pickers/PlaceButton';
 import { PlaceSheet } from '@/components/pickers/PlaceSheet';
 import { ErrorState, ListGroup, PressableScale, SearchField, SectionHeader, Skeleton, Text } from '@/components/ui';
@@ -38,7 +40,12 @@ export function HomeScreen() {
       <LargeTitleScrollView
         title={greetingFor()}
         tabRoot
-        headerRight={<PlaceButton label={placeName(place)} onPress={() => setPlaceOpen(true)} />}
+        headerRight={
+          <View style={styles.headerButtons}>
+            <PlaceButton label={placeName(place)} onPress={() => setPlaceOpen(true)} />
+            <BellButton />
+          </View>
+        }
         accessory={
           <SearchField
             asButton
@@ -87,6 +94,10 @@ function HomeSections({ feed, loading, featuredWidth, tileWidth, place, onChange
 
   return (
     <>
+      <View style={styles.today}>
+        <EventDayCards />
+      </View>
+
       {/* Coming up: featured carousel */}
       <View style={styles.section}>
         <SectionHeader title="Coming Up" onSeeAll={() => router.push('/browse/upcoming')} />
@@ -342,6 +353,8 @@ function RowSkeleton() {
 
 const styles = StyleSheet.create({
   content: { maxWidth: MAX_CONTENT, width: '100%', alignSelf: 'center' },
+  headerButtons: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  today: { marginTop: spacing.sm },
   section: { marginTop: spacing.xxl },
   shelf: { paddingHorizontal: spacing.lg, gap: spacing.md },
   inset: { paddingHorizontal: spacing.lg },

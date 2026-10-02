@@ -8,6 +8,7 @@ import { runEventSync } from '../../ingestion/sync';
 import { updateStatuses } from '../../jobs/statusJob';
 import { HttpError } from '../../lib/http';
 import { logger } from '../../lib/logger';
+import type { NotificationService } from '../notifications/service';
 
 /** Constant-time check of the cron secret sent in the X-Cron-Secret header. */
 const requireCronSecret =
@@ -34,12 +35,13 @@ const istDay = (d: Date) => {
  * statuses hourly, sample data once a day, the event sync every EVENT_SYNC_INTERVAL_HOURS.
  * The sync can take minutes, so it runs in the background and the tick answers at once.
  */
-export function internalRoutes(db: Db, config: Config): Router {
+export function internalRoutes(db: Db, config: Config, notifications: NotificationService): Router {
   const router = Router();
   const syncEveryMs = config.EVENT_SYNC_INTERVAL_HOURS * 3_600_000;
   let busy = false;
   let lastStatusRun = 0;
   let lastDemoDay = '';
+  let lastTomorrowDay = '';
   /** When the next sync is due; read from the database once after a restart. */
   let nextSyncAt: number | null = null;
   let syncRunning = false;
@@ -54,7 +56,12 @@ export function internalRoutes(db: Db, config: Config): Router {
     nextSyncAt = now.getTime() + syncEveryMs;
     syncRunning = true;
     void runEventSync(db, { now })
-      .then((summary) => logger.info({ summary }, 'Event sync finished'))
+      .then(async (summary) => {
+        logger.info({ summary }, 'Event sync finished');
+        // Changes to followed events and new matches go out right after the data changes.
+        const alerts = await notifications.afterSync(new Date());
+        logger.info({ alerts }, 'Alerts after sync');
+      })
       .catch((error) => logger.error({ err: error }, 'Event sync failed'))
       .finally(() => {
         syncRunning = false;
@@ -82,6 +89,14 @@ export function internalRoutes(db: Db, config: Config): Router {
       }
       if (nextSyncAt === null || started >= nextSyncAt) {
         result.syncStarted = await startSyncIfDue(now);
+      }
+      // Reminders: the due time is kept in memory, so this only touches the database when one is due.
+      const reminders = await notifications.remindersIfDue(now);
+      if (reminders) result.reminders = reminders;
+      // "Starts tomorrow" once a day, in the evening (India time).
+      if (istParts(now).hour >= 18 && istDay(now) !== lastTomorrowDay) {
+        result.startsTomorrow = await notifications.startsTomorrow(now);
+        lastTomorrowDay = istDay(now);
       }
       res.json({ status: 'ok', durationMs: Date.now() - started, touchedDatabase: Object.keys(result).length > 0, ...result });
     } finally {

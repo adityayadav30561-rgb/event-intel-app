@@ -42,7 +42,8 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
 | 4 Sign-in, onboarding, interests, relevance | ✅ Built and tested (2 Oct 2026) | Team accounts (admin adds people with one-time passwords), rotating sessions, choose-your-password, onboarding, Interests, match badges with reasons, Home "For You"; 61 API + 36 shared tests |
 | 5 Tracking and offline | ✅ Built and tested (2 Oct 2026) | Save, Follow, visit status (planning → visited), visit day, travel notes, one note and a checklist per event, My Events (Saved · Following · Planned · Visited · Past), "Did you visit?", team "Also going", offline event packs, offline app shell; changes queue on the phone and sync with ids and latest-wins per field; 72 API + 40 shared tests |
 | 6 Discovery depth | ✅ Built and tested (2 Oct 2026) | Natural search ("ERP conferences in Hyderabad" → chips), North/South/East/West/Central zones, Filters sheet (technology, industry, attendance, price, match level), Sort (date, best for you, nearest, newest, updated), Near Me (10–100 km, asked only on tap), map with server-side clusters (MapLibre + OpenFreeMap, free), saved searches, recent searches, collections on Home; 81 API + 49 shared tests |
-| 7–9 | Not started | |
+| 7 Calendar, reminders, notifications, Event Day | ✅ Built and tested (2 Oct 2026) | Web Push alerts (changes to followed events, saved-search matches, interest digest, reminders, starts tomorrow) with inbox, per-type switches, quiet hours and a 3-a-day limit; reminders (1 week / 3 days / 1 day / 2 hours); add to calendar (signed .ics link or Google Calendar); month calendar with My/All events; Event Day Mode on Home and My Events; alerts step in onboarding; 93 API + 49 shared tests |
+| 8–9 | Not started | |
 
 ### Pending (agreed 1 Oct 2026, picked up after the current phase)
 
@@ -82,6 +83,9 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
 | Custom date range picker | Presets plus months in natural search ("Odoo December") | Covers how the team actually asks; a calendar picker can follow if missed |
 | Speaker, exhibitor and city pages | City and zone lists through Explore and Collections; speaker and exhibitor pages left for later | Real sources rarely list speakers or exhibitors yet |
 | Map tiles (unspecified) | OpenFreeMap vector tiles through MapLibre GL, loaded only when the map opens | Free with no key or limits, commercial use allowed, Apple-like light and dark styles |
+| Month, Week and Agenda calendar views | Month grid (with each day's events below) and the month's agenda; no separate week view | A team-sized calendar reads well by month on a phone; a week strip can follow if missed |
+| Reminders with a custom time | 1 week, 3 days, 1 day or 2 hours before | Covers the usual cases without a date-time picker on the web; can be added later |
+| Reminders checked on every tick | The next due time is kept in memory; the database is queried only when a reminder is due, after each sync, and once each evening | The free database has 100 compute-hours a month; a query every 10 minutes would use them up |
 | /health checks the database | /health is liveness only; `/health?db=1` for a deep check | Health checks and pings must not wake the free database (100 compute-hours/month) |
 
 ## 1. Summary of decisions

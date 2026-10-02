@@ -49,6 +49,42 @@ async function image(request) {
   return cached || fetch(request);
 }
 
+// Alerts (Phase 7): show what the server sent; a tap opens that screen in the app.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: 'Event Intel', body: event.data ? event.data.text() : '' };
+  }
+  const title = data.title || 'Event Intel';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      tag: data.tag,
+      data: { url: data.url || '/' },
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      // Reuse the open app: bring it forward and go to the screen.
+      for (const client of windows) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          return client.focus().then((c) => ('navigate' in c ? c.navigate(url) : c));
+        }
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;

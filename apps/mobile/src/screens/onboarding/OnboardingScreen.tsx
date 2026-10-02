@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InterestSection } from '@/components/account/InterestPicker';
 import { Button, showToast, Text } from '@/components/ui';
 import { useCompleteOnboarding, usePreferences, useSavePreferences } from '@/hooks/useAccount';
+import { usePush } from '@/hooks/useAlerts';
+import type { PushStatus } from '@/platform/push';
 import { errorMessage } from '@/lib/errors';
 import { radius, spacing, useTheme, type ColorTokens } from '@/theme';
 
@@ -33,7 +35,17 @@ const INTROS: Intro[] = [
   },
 ];
 
-const PAGES = INTROS.length + 2;
+/** Intros, interests, cities, alerts. */
+const PAGES = INTROS.length + 3;
+const ALERTS_PAGE = INTROS.length + 2;
+
+const ALERT_HINT: Partial<Record<PushStatus, string>> = {
+  on: 'Alerts are on for this phone.',
+  denied: 'Alerts are blocked. You can allow them later in iPhone Settings → Notifications → Event Intel.',
+  needs_install: 'iPhone sends alerts only to apps opened from the Home Screen. Add Event Intel there (Share → Add to Home Screen), then turn alerts on in More → Notifications.',
+  unsupported: 'This browser can’t show alerts. Everything still appears in the inbox.',
+  unavailable: 'Turn alerts on later from More → Notifications in the installed app.',
+};
 
 /** First run, shown once (and skippable): what the app does, then what you're interested in. */
 export function OnboardingScreen() {
@@ -43,6 +55,7 @@ export function OnboardingScreen() {
   const save = useSavePreferences();
   const complete = useCompleteOnboarding();
   const [page, setPage] = useState(0);
+  const push = usePush();
   const [draft, setDraft] = useState<Preferences | null>(null);
   const prefs = draft ?? saved ?? EMPTY_PREFERENCES;
 
@@ -99,7 +112,26 @@ export function OnboardingScreen() {
           },
         ]}
       >
-        {intro ? (
+        {page === ALERTS_PAGE ? (
+          <View style={styles.intro}>
+            <View style={[styles.iconWrap, { backgroundColor: colors.red }]}>
+              <Ionicons name="notifications" size={52} color="#FFFFFF" />
+            </View>
+            <Text variant="largeTitle" style={styles.center} accessibilityRole="header">
+              Turn on alerts
+            </Text>
+            <Text variant="body" tone="secondary" style={[styles.center, styles.introBody]}>
+              Hear when an event you follow changes date, venue or status, when a saved search finds something new, and before events you plan to visit.
+            </Text>
+            {push.status === 'off' ? (
+              <Button title={push.busy ? 'Turning On…' : 'Turn On Alerts'} icon="notifications" variant="tinted" onPress={() => void push.turnOn().catch(() => undefined)} disabled={push.busy} />
+            ) : push.status ? (
+              <Text variant="subheadline" tone={push.status === 'on' ? 'green' : 'secondary'} style={[styles.center, styles.introBody]}>
+                {ALERT_HINT[push.status]}
+              </Text>
+            ) : null}
+          </View>
+        ) : intro ? (
           <View style={styles.intro}>
             <View style={[styles.iconWrap, { backgroundColor: intro.color(colors) }]}>
               <Ionicons name={intro.icon} size={52} color="#FFFFFF" />

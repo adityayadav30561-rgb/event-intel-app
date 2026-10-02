@@ -1,4 +1,4 @@
-import type { AuthSession, CityCount, EventDetail, EventQuery, EventSummary, HomeFeed, HomeQuery, Me, OrganizerProfile, Page, Preferences, Relevance, Role, MapQuery, MapResponse, PlannedVisitor, SavedSearch, SavedSearchQuery, SyncStatus, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
+import type { AppNotification, CalendarLinks, NotificationSettings, Reminder, AuthSession, CityCount, EventDetail, EventQuery, EventSummary, HomeFeed, HomeQuery, Me, OrganizerProfile, Page, Preferences, Relevance, Role, MapQuery, MapResponse, PlannedVisitor, SavedSearch, SavedSearchQuery, SyncStatus, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
 
 /**
  * Everything the app needs from an event data source. Screens never see which implementation
@@ -41,4 +41,16 @@ export interface AccountRepository {
   createSavedSearch(input: { name: string; query: SavedSearchQuery; notify?: boolean }): Promise<SavedSearch>;
   updateSavedSearch(id: string, input: { name?: string; query?: SavedSearchQuery; notify?: boolean }): Promise<SavedSearch>;
   deleteSavedSearch(id: string): Promise<void>;
+  pushKey(): Promise<string>;
+  registerPush(subscription: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<void>;
+  unregisterPush(endpoint: string): Promise<void>;
+  testPush(): Promise<void>;
+  notificationSettings(): Promise<NotificationSettings>;
+  saveNotificationSettings(settings: NotificationSettings): Promise<NotificationSettings>;
+  notifications(before?: string): Promise<{ items: AppNotification[]; unread: number; nextBefore: string | null }>;
+  markNotificationsRead(ids?: string[]): Promise<void>;
+  reminders(): Promise<Reminder[]>;
+  addReminder(eventId: string, offsetMinutes: number): Promise<Reminder[]>;
+  removeReminder(id: string): Promise<void>;
+  calendarLinks(eventId: string): Promise<CalendarLinks>;
 }

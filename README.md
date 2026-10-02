@@ -6,7 +6,7 @@ An internal app for a team of 4–5 people to discover professional events acros
 
 - **Live app:** https://event-intelligence-india.expo.app
 - **Plan:** [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) · **Deploying and operating:** [docs/RUNBOOK.md](docs/RUNBOOK.md)
-- **Progress:** Phase 0 ✅ · Phase 1 ✅ · Phase 2 ✅ (API live at https://event-intel-api.onrender.com) · Phase 3 ✅ (live event sources) · Phase 4 ✅ (sign-in, interests, relevance) · Phase 5 ✅ (tracking and offline) · Phase 6 ✅ (discovery: natural search, zones, filters, map, saved searches)
+- **Progress:** Phase 0 ✅ · Phase 1 ✅ · Phase 2 ✅ (API live at https://event-intel-api.onrender.com) · Phase 3 ✅ (live event sources) · Phase 4 ✅ (sign-in, interests, relevance) · Phase 5 ✅ (tracking and offline) · Phase 6 ✅ (discovery: natural search, zones, filters, map, saved searches) · Phase 7 ✅ (alerts, reminders, calendar, Event Day)
 - **Expo project:** `@mithford_again/event-intelligence-india`
 
 ## Install on a phone

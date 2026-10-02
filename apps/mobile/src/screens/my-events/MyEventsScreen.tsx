@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { CompactEventRow } from '@/components/event';
 import { LargeTitleScrollView } from '@/components/layout/LargeTitle';
+import { EventDayCards } from '@/components/tracking/EventDayCard';
 import { Button, EmptyState, ListGroup, SegmentedControl, Text } from '@/components/ui';
 import { trackingActions, useMyEvents, type MyEventsList } from '@/hooks/useTracking';
 import { syncTracking } from '@/services/trackingSync';
@@ -72,6 +73,9 @@ export function MyEventsScreen() {
         />
       }
     >
+      <View style={styles.dayCards}>
+        <EventDayCards />
+      </View>
       <View style={styles.body}>
         {awaitingAnswer.slice(0, 3).map(({ event }) => (
           <View key={event.id} style={[styles.prompt, { backgroundColor: colors.surface }]}>
@@ -112,6 +116,7 @@ export function MyEventsScreen() {
 
 const styles = StyleSheet.create({
   body: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.lg },
+  dayCards: { paddingTop: spacing.lg },
   empty: { paddingTop: spacing.xl },
   prompt: { borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm },
   promptButtons: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xs },

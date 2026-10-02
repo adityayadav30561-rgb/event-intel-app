@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { AuthSession, Me, Role, TeamMember, TemporaryPassword } from '@eii/shared';
 import type { Db } from '../../db/client';
 import { HttpError } from '../../lib/http';
@@ -75,6 +75,17 @@ export class AuthService {
 
   verify(token: string): AccessClaims | undefined {
     return verifyAccessToken(token, this.secret);
+  }
+
+  /** Signs a public link (e.g. a calendar file the phone opens without the app's sign-in). */
+  signLink(data: string): string {
+    return createHmac('sha256', `${this.secret}:links`).update(data).digest('base64url');
+  }
+
+  verifyLink(data: string, signature: string): boolean {
+    const expected = Buffer.from(this.signLink(data));
+    const given = Buffer.from(signature);
+    return expected.length === given.length && timingSafeEqual(expected, given);
   }
 
   private async audit(actorId: string | null, action: string, ctx: Context, entityId?: string, detail?: object) {

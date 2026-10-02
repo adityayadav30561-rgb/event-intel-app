@@ -10,6 +10,7 @@ import { OfflineBanner, ToastHost } from '@/components/ui';
 import { InstallPrompt } from '@/components/ui/InstallPrompt';
 import { registerServiceWorker } from '@/platform/serviceWorker';
 import { useMeSync } from '@/hooks/useAccount';
+import { usePushRefresh } from '@/hooks/useAlerts';
 import { useTrackingLifecycle } from '@/hooks/useTracking';
 import { AppProviders } from '@/providers/AppProviders';
 import { useCurrentUser, useSessionStage } from '@/store/sessionStore';
@@ -30,6 +31,7 @@ function RootStack() {
   const isAdmin = useCurrentUser()?.role === 'admin';
   useMeSync();
   useTrackingLifecycle();
+  usePushRefresh();
   const quiet = { animation: 'fade', gestureEnabled: false } as const;
   return (
     <Stack
@@ -62,6 +64,9 @@ function RootStack() {
         <Stack.Screen name="event/[id]/exhibitors" />
         <Stack.Screen name="event/[id]/checklist" />
         <Stack.Screen name="event/[id]/note" />
+        <Stack.Screen name="event/[id]/day" />
+        <Stack.Screen name="saved-search/[id]" options={{ animation: 'none' }} />
+        <Stack.Screen name="notifications" />
         <Stack.Screen name="organizer/[id]" />
         <Stack.Screen name="category/[id]" />
         <Stack.Screen name="browse/[section]" />
@@ -71,6 +76,8 @@ function RootStack() {
         <Stack.Screen name="settings/password" />
         <Stack.Screen name="settings/offline" />
         <Stack.Screen name="settings/searches" />
+        <Stack.Screen name="settings/notifications" />
+        <Stack.Screen name="settings/reminders" />
         <Stack.Protected guard={isAdmin}>
           <Stack.Screen name="settings/team" />
         </Stack.Protected>

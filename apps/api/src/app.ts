@@ -13,6 +13,10 @@ import type { AuthService } from './modules/auth/service';
 import { eventRoutes } from './modules/events/routes';
 import { EventService } from './modules/events/service';
 import { internalRoutes } from './modules/internal/routes';
+import { calendarLinkRoutes, publicCalendarRoutes } from './modules/notifications/calendar';
+import type { PushSender } from './modules/notifications/push';
+import { notificationRoutes } from './modules/notifications/routes';
+import { NotificationService } from './modules/notifications/service';
 import { meRoutes } from './modules/me/routes';
 import { savedSearchRoutes } from './modules/me/savedSearches';
 import { trackingRoutes } from './modules/tracking/routes';
@@ -24,7 +28,10 @@ import { taxonomyRoutes } from './modules/taxonomy/routes';
 const APP_ORIGIN = /^https:\/\/event-intelligence-india(--[a-z0-9]+)?\.expo\.app$/;
 const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
 
-export function createApp(db: Db, config: Config, auth: AuthService) {
+/** Without a real sender (tests, local runs without keys) pushes are simply not delivered. */
+const noPush: PushSender = { publicKey: '', send: async () => 'error' };
+
+export function createApp(db: Db, config: Config, auth: AuthService, sender: PushSender = noPush) {
   const app = express();
   const extraOrigins = new Set(config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean));
 
@@ -53,6 +60,9 @@ export function createApp(db: Db, config: Config, auth: AuthService) {
   });
 
   const events = new EventService(db);
+  const notifications = new NotificationService(db, events, events.repo, sender);
+  // Calendar files open in the phone's calendar app, without the app's sign-in: signed links instead.
+  app.use(publicCalendarRoutes(auth, events));
   const v1 = express.Router();
   v1.use(rateLimit({ windowMs: 60_000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
   // Signing in is the only thing possible without an account; everything else needs one.
@@ -61,12 +71,14 @@ export function createApp(db: Db, config: Config, auth: AuthService) {
   v1.use(accountRoutes(auth));
   v1.use(meRoutes(db, auth, events));
   v1.use(savedSearchRoutes(db));
+  v1.use(notificationRoutes(notifications, events));
+  v1.use(calendarLinkRoutes(auth, events));
   v1.use(trackingRoutes(new TrackingService(db, events.repo)));
   v1.use(eventRoutes(events));
   v1.use(taxonomyRoutes(db, events));
   v1.use(syncRoutes(db, config));
   app.use('/v1', v1);
-  app.use('/internal', rateLimit({ windowMs: 60_000, limit: 20 }), internalRoutes(db, config));
+  app.use('/internal', rateLimit({ windowMs: 60_000, limit: 20 }), internalRoutes(db, config, notifications));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

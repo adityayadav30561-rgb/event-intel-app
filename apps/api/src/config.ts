@@ -31,6 +31,11 @@ const schema = z.object({
   SOURCES_ENABLED: z.string().default(''),
   /** Optional team Google Sheet, published as CSV (File → Share → Publish to web → CSV). */
   CURATED_SHEET_URL: z.preprocess((v) => (v === '' ? undefined : v), z.string().url().optional()),
+  /** Web Push keys. Optional: without them a pair is generated once and kept in the database. */
+  VAPID_PUBLIC_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
+  VAPID_PRIVATE_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
+  /** Contact for push services (a mailto: or https URL). */
+  VAPID_SUBJECT: z.string().default('https://event-intelligence-india.expo.app'),
   LOG_LEVEL: z.string().default('info'),
 });
 

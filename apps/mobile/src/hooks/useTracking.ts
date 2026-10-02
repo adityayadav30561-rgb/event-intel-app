@@ -1,5 +1,6 @@
 import {
   checklistFor,
+  istDayDiff,
   isTracked,
   toEventSummary,
   type ChecklistItem,
@@ -155,4 +156,20 @@ export function useTrackingLifecycle() {
     const sub = AppState.addEventListener('change', (s) => s === 'active' && void syncTracking());
     return () => sub.remove();
   }, [userId]);
+}
+
+/** Tracked events happening today (Event Day Mode, §55): saved, followed or planned, not cancelled. */
+export function useTodayEvents(): EventSummary[] {
+  const view = useTrackingStore((s) => s.view);
+  const events = useTrackingStore((s) => s.events);
+  const now = useNow();
+  return useMemo(() => {
+    const endOfToday = new Date(now + 86_400_000);
+    return Object.values(view.tracking)
+      .filter((t) => isTracked(t) && t.status !== 'not_visited')
+      .map((t) => events[t.eventId])
+      .filter((e): e is EventSummary => Boolean(e) && e!.status !== 'cancelled')
+      .filter((e) => new Date(e.startAt) < endOfToday && new Date(e.endAt).getTime() >= now && istDayDiff(new Date(e.startAt), new Date(now)) <= 0)
+      .sort((a, b) => a.startAt.localeCompare(b.startAt));
+  }, [view, events, now]);
 }

@@ -16,3 +16,4 @@ export * from './taxonomy/zones';
 export * from './search/natural';
 export * from './feeds/collections';
 export * from './search/mapClusters';
+export * from './contracts/notifications';
