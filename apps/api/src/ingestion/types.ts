@@ -68,8 +68,12 @@ export type SourceConfig = {
   country?: string;
   /** Keep only events that match at least one topic (default true): venue calendars also list weddings and consumer fairs. */
   requireTopic?: boolean;
+  /** Topics too broad to make an event relevant on their own from this source (e.g. a directory's "business"). */
+  ignoreTopics?: string[];
+  /** Titles to leave out (regex, case-insensitive): socials, committee meetings, "invitation to exhibit" notices. */
+  excludeTitle?: string;
   /** Topics every event from this source has (e.g. everything on Zoho's events site is about Zoho). */
-  topics?: { technologyIds?: string[]; categoryIds?: string[] };
+  topics?: { technologyIds?: string[]; categoryIds?: string[]; industryIds?: string[] };
   /** Defaults applied when the source doesn't say (e.g. a venue's own address). */
   defaults?: Partial<Pick<RawEvent, 'venueName' | 'address' | 'city' | 'organizerName' | 'organizerUrl' | 'typeHint'>>;
   /** Pages without structured data: where each fact sits on an event card (see extract/cards.ts). */

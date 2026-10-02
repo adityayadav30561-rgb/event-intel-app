@@ -118,4 +118,7 @@ export type SourceInfo = {
   compliance: string | null;
 };
 
-export type SyncInfo = { running: boolean; nextSyncAt: string | null; runs: SyncRunInfo[]; sources: SourceInfo[] };
+/** Upcoming visible events per zone of India (and online), to see where coverage is thin. */
+export type Coverage = { zones: { id: string; name: string; upcoming: number }[]; online: number };
+
+export type SyncInfo = { running: boolean; nextSyncAt: string | null; runs: SyncRunInfo[]; sources: SourceInfo[]; /** Missing from servers older than 2 Oct 2026. */ coverage?: Coverage };

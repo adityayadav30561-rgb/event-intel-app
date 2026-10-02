@@ -22,14 +22,37 @@ const slugify = (text: string) =>
     .replace(/(^-|-$)/g, '')
     .slice(0, 80);
 
+const NAMED: Record<string, string> = {
+  nbsp: ' ',
+  amp: '&',
+  quot: '"',
+  apos: '’',
+  rsquo: '’',
+  lsquo: '‘',
+  ldquo: '“',
+  rdquo: '”',
+  ndash: '–',
+  mdash: '—',
+  hellip: '…',
+  bull: '•',
+  rarr: '→',
+  lt: '<',
+  gt: '>',
+};
+
+/** HTML entities sources leave in text ("&#038;", "&#8217;", "&rsquo;"). */
+const decodeEntities = (text: string) =>
+  text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, code: string) => {
+    if (code[0] !== '#') return NAMED[code.toLowerCase()] ?? whole;
+    const n = code[1] === 'x' || code[1] === 'X' ? parseInt(code.slice(2), 16) : Number(code.slice(1));
+    if (n === 39) return '’';
+    return n > 0 && n < 0x110000 ? String.fromCodePoint(n) : whole;
+  });
+
 const clean = (text: string | undefined, max = 5000) =>
   text
-    ? text
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&#39;|&rsquo;/g, '’')
-        .replace(/&quot;/g, '"')
+    ? decodeEntities(text.replace(/<[^>]+>/g, ' '))
+        .replace(/\u00a0/g, ' ')
         .replace(/[ \t]+/g, ' ')
         .replace(/\s*\n\s*/g, '\n')
         .trim()
@@ -87,6 +110,9 @@ const MONTH = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/i;
  */
 export function tidyTitle(title: string | undefined): string | undefined {
   if (!title) return undefined;
+  // "FMCG Cohort 2026 @ Chennai": the place is kept as the city, not in the name.
+  const at = title.match(/^(.+?)\s+@\s+([^@]{2,40})$/);
+  if (at && resolveCity({ city: at[2], title: '' })) title = at[1]!;
   // Only "|": dashes are part of real names ("IFEX 2027 – 23rd Indian Foundry Exhibition").
   const parts = title.split(/\s+\|\s+/);
   if (parts.length === 1) return title;
@@ -137,7 +163,8 @@ export function normalize(raw: RawEvent, source: SourceRow, now: Date): Normaliz
   if (country && !['in', 'ind', 'india', 'bharat'].includes(country)) return { ok: false, reason: 'not_india' };
 
   const online = merged.attendanceMode === 'online';
-  let cityId = resolveCity({ ...merged, title });
+  // The title as the source wrote it: "… @ Chennai" names the city even though the name drops it.
+  let cityId = resolveCity({ ...merged, title: clean(merged.title, 200) ?? title });
   let newCity: { id: string; name: string; state: string } | undefined;
   if (!cityId && merged.city && /^[\p{L} .'-]{2,40}$/u.test(merged.city)) {
     const name = titleCase(merged.city.trim());
@@ -153,9 +180,13 @@ export function normalize(raw: RawEvent, source: SourceRow, now: Date): Normaliz
   const fixed = source.config.topics;
   for (const id of fixed?.technologyIds ?? []) if (!topics.technologyIds.includes(id)) topics.technologyIds.unshift(id);
   for (const id of fixed?.categoryIds ?? []) if (!topics.categoryIds.includes(id)) topics.categoryIds.unshift(id);
+  for (const id of fixed?.industryIds ?? []) if (!topics.industryIds.includes(id)) topics.industryIds.unshift(id);
   // Relevant = matches a technology, category or industry the team follows (industrial expos count).
-  const anyTopic = topics.categoryIds.length + topics.technologyIds.length + topics.industryIds.length > 0;
+  const ignored = new Set(source.config.ignoreTopics ?? []);
+  const counted = (ids: string[]) => ids.filter((id) => !ignored.has(id)).length;
+  const anyTopic = counted(topics.categoryIds) + counted(topics.technologyIds) + counted(topics.industryIds) > 0;
   if (source.config.requireTopic !== false && !anyTopic) return { ok: false, reason: 'irrelevant' };
+  if (source.config.excludeTitle && new RegExp(source.config.excludeTitle, 'i').test(title)) return { ok: false, reason: 'irrelevant' };
   // Industry-only events still need a category for browsing: trade and manufacturing fairs file under Business & Trade.
   if (topics.categoryIds.length === 0) topics.categoryIds.push(topics.industryIds.includes('manufacturing') ? 'manufacturing' : 'business');
 

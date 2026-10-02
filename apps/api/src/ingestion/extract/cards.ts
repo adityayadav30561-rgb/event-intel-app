@@ -13,16 +13,22 @@ export type CardSelectors = {
   /** One element per event. */
   item: string;
   title: string;
-  /** Human date text: "January 21 - 27, 2027", "30 Sep, 2026 - 03 Oct, 2026", "6 - 29 Oct 2026". */
+  /** Human date text: "January 21 - 27, 2027", "30 Sep, 2026 - 03 Oct, 2026", "6 - 29 Oct 2026", "05-10-2026 to 07-10-2026". */
   date: string;
+  /** Read the date from this attribute of the date element instead of its text (e.g. `datetime`). */
+  dateAttr?: string;
+  /** When the date shares its element with other text, a regex whose first match is the date. */
+  dateMatch?: string;
   /** Link to the event (the item itself when it is an <a> and this is omitted). */
   link?: string;
   /** Daily hours: "9:00am - 6:00pm". */
   time?: string;
   organizer?: string;
-  /** A hall inside the venue ("Hall 1 and 2"), or a place ("New Delhi, India"); see `locationKind`. */
+  /** A hall inside the venue ("Hall 1 and 2"), the venue itself ("Bharat Mandapam, New Delhi"), or a place ("New Delhi, India"); see `locationKind`. */
   location?: string;
-  locationKind?: 'hall' | 'place';
+  locationKind?: 'hall' | 'venue' | 'place';
+  /** When the location shares its element with other text, a regex; its first group (or whole match) is the location. */
+  locationMatch?: string;
   description?: string;
   image?: string;
   /** The source's own label ("Exhibition", "Conference"), used as a type hint. */
@@ -75,10 +81,18 @@ const isoDate = (p: Required<Part>) => {
  */
 export function parseDateRange(text: string | undefined): { start: string; end: string } | undefined {
   if (!text) return undefined;
+  // Numeric dates: ISO ("2026-10-15") or Indian day-month-year ("05-10-2026", "05/10/2026").
+  const numeric = [...text.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b|\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/g)].map((m) =>
+    m[1] ? isoDate({ year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) }) : isoDate({ year: Number(m[6]), month: Number(m[5]), day: Number(m[4]) }),
+  );
+  if (numeric.length) {
+    const [start, end = start] = numeric;
+    return start && end && end >= start ? { start, end } : undefined;
+  }
   const sides = text
     .replace(/\s+/g, ' ')
     .trim()
-    .split(/\s*(?:[-–—]|\bto\b|\btill\b|\buntil\b)\s*/i)
+    .split(/\s*(?:[-–—&]|\bto\b|\btill\b|\buntil\b)\s*/i)
     .filter(Boolean);
   if (sides.length === 0 || sides.length > 2) return undefined;
   const a = parsePart(sides[0]!);
@@ -116,7 +130,26 @@ export function parseTimeRange(text: string | undefined): { start: string; end?:
   return { start: times[0]!, end: times[1] };
 }
 
-const textOf = (el: { text(): string } | undefined) => el?.text().replace(/\s+/g, ' ').trim() || undefined;
+const textOf = (el: { text(): string } | undefined) =>
+  el
+    ?.text()
+    .replace(/\s+/g, ' ')
+    .trim()
+    // List numbering ("1. Dubai Connect") and field labels ("Venue : Federation House").
+    .replace(/^\d{1,3}\.\s+/, '')
+    .replace(/^(venue|date|time|location|place)\s*:\s*/i, '') || undefined;
+
+function matchText(text: string | undefined, pattern: string | undefined) {
+  if (!text || !pattern) return text;
+  const m = text.match(new RegExp(pattern, 'i'));
+  return (m?.[1] ?? m?.[0])?.trim() || undefined;
+}
+
+function dateText(el: { text(): string; attr(name: string): string | undefined } | undefined, sel: CardSelectors) {
+  const raw = sel.dateAttr ? el?.attr(sel.dateAttr)?.trim() : textOf(el);
+  if (!raw || !sel.dateMatch) return raw;
+  return raw.match(new RegExp(sel.dateMatch, 'i'))?.[0]?.trim();
+}
 
 /** Words that mean "no single place": never a city. */
 const NO_PLACE = /^(n\/?a|tba|tbd|multiple( cities| locations)?|various|pan[ -]india|-)$/i;
@@ -166,11 +199,11 @@ export function extractCards(html: string, pageUrl: string, sel: CardSelectors, 
       const imageEl = find(sel.image);
       return {
         title: textOf(find(sel.title)),
-        date: textOf(find(sel.date)),
+        date: dateText(find(sel.date), sel),
         time: textOf(find(sel.time)),
         link: resolve(linkEl?.attr('href')),
         organizer: textOf(find(sel.organizer)),
-        location: textOf(find(sel.location)),
+        location: matchText(textOf(find(sel.location)), sel.locationMatch),
         description: textOf(find(sel.description)),
         image: resolve(imageEl?.attr('src') ?? imageEl?.attr('data-src')),
         type: textOf(find(sel.type)),
@@ -202,6 +235,7 @@ export function extractCards(html: string, pageUrl: string, sel: CardSelectors, 
       start: hours ? `${dates.start}T${hours.start}:00` : dates.start,
       end: hours?.end ? `${dates.end}T${hours.end}:00` : dates.end,
       address: hall ? [hall, defaultAddress].filter(Boolean).join(', ') : undefined,
+      venueName: sel.locationKind === 'venue' ? c.location : undefined,
       ...place,
       organizerName: c.organizer,
       imageUrl: c.image,

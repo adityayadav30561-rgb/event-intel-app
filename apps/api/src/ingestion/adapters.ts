@@ -3,6 +3,8 @@ import { XMLParser } from 'fast-xml-parser';
 import ical, { type VEvent } from 'node-ical';
 import { extractCards } from './extract/cards';
 import { extractJsonLdEvents } from './extract/jsonld';
+import { ASSOCHAM_API, assochamEvent, forthcomingSlugs } from './extract/assocham';
+import { extractTradeIndia } from './extract/tradeindia';
 import type { Fetcher, RawEvent, SourceAdapter, SourceRow } from './types';
 
 /**
@@ -265,4 +267,50 @@ const cards: SourceAdapter = {
   },
 };
 
-export const ADAPTERS: Record<string, SourceAdapter> = { jsonld, ics, rss, curated, sitemap, confstech, cards };
+/**
+ * TradeIndia trade-show city pages (a directory). A city with more shows than one page holds is
+ * read month by month as well; a show is kept once however many pages list it.
+ */
+const tradeindia: SourceAdapter = {
+  id: 'tradeindia',
+  async read(source, fetcher) {
+    const events = new Map<string, RawEvent>();
+    for (const url of source.config.urls ?? []) {
+      const page = extractTradeIndia(await fetcher.text(url));
+      for (const e of page.events) events.set(e.sourceEventId, e);
+      if (page.total <= page.events.length + page.skipped) continue;
+      for (const monthUrl of page.monthUrls.slice(0, 12)) {
+        try {
+          for (const e of extractTradeIndia(await fetcher.text(monthUrl)).events) events.set(e.sourceEventId, e);
+        } catch (error) {
+          // A missing month page shouldn't fail the city.
+          if ((error as { retryable?: boolean }).retryable === false) continue;
+          throw error;
+        }
+      }
+    }
+    return [...events.values()];
+  },
+};
+
+/** ASSOCHAM: the forthcoming events from the public JSON its website uses, one details call each. */
+const assocham: SourceAdapter = {
+  id: 'assocham',
+  async read(_source, fetcher) {
+    const accept = 'application/json';
+    const slugs = forthcomingSlugs(await fetcher.text(`${ASSOCHAM_API}/get_events.php`, accept));
+    const events: RawEvent[] = [];
+    for (const slug of slugs.slice(0, 40)) {
+      try {
+        const event = assochamEvent(await fetcher.text(`${ASSOCHAM_API}/get_event_detail.php?event=${encodeURIComponent(slug)}`, accept));
+        if (event) events.push(event);
+      } catch (error) {
+        if ((error as { retryable?: boolean }).retryable === false) continue;
+        throw error;
+      }
+    }
+    return events;
+  },
+};
+
+export const ADAPTERS: Record<string, SourceAdapter> = { jsonld, ics, rss, curated, sitemap, confstech, cards, tradeindia, assocham };

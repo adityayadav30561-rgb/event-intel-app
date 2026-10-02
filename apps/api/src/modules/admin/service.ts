@@ -6,6 +6,7 @@ import type {
   AdminOverview,
   ConflictItem,
   ConflictValue,
+  Coverage,
   DuplicatePair,
   EventDetail,
   MergeChoice,
@@ -13,6 +14,7 @@ import type {
   SourceInfo,
   SyncInfo,
 } from '@eii/shared';
+import { ZONES, zoneOfState } from '@eii/shared';
 import type { Db } from '../../db/client';
 import { importFromUrl, MANUAL_SOURCE } from '../../ingestion/importUrl';
 import { mergeEvent, newEventId, type OverridableField } from '../../ingestion/merge';
@@ -407,6 +409,7 @@ export class AdminService {
       compliance_note: string | null;
     }>(`select id, name, kind, enabled, admin_enabled, health, last_success_at, last_failure_at, last_error, events_found, compliance_note from sources where kind not in ('demo') and id <> 'manual' order by enabled desc, name`);
     return {
+      coverage: await this.coverage(),
       running: this.sync.isRunning,
       nextSyncAt: iso(this.sync.nextAt),
       runs: runs.map((r) => ({
@@ -438,6 +441,27 @@ export class AdminService {
         }),
       ),
     };
+  }
+
+  /** Upcoming events everyone can see, by zone (from the city's state) and online. */
+  private async coverage(): Promise<Coverage> {
+    const rows = await this.db.query<{ state: string | null; online: boolean; n: number }>(
+      `select c.state, o.attendance_mode = 'online' as online, count(*)::int as n
+       from event_occurrences o join cities c on c.id = o.city_id
+       where o.verification_status = 'verified' and o.deleted_at is null and o.merged_into is null and not o.is_demo and o.end_at >= now()
+       group by 1, 2`,
+    );
+    const zones = ZONES.map((z) => ({ id: z.id as string, name: z.name as string, upcoming: 0 }));
+    let online = 0;
+    for (const r of rows) {
+      if (r.online) {
+        online += r.n;
+        continue;
+      }
+      const zone = zones.find((z) => z.id === zoneOfState(r.state ?? undefined)?.id);
+      if (zone) zone.upcoming += r.n;
+    }
+    return { zones, online };
   }
 
   async runSyncNow(actorId: string): Promise<boolean> {

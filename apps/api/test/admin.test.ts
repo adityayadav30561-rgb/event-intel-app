@@ -179,4 +179,20 @@ describe('sync and sources', () => {
     await syncSourceRegistry(db, ['odoo-india']);
     expect(((await as(admin).get('/v1/admin/sync')).body as SyncInfo).sources.find((s) => s.id === 'odoo-india')?.enabled).toBe(true);
   });
+
+  it('counts upcoming events by region, leaving out sample events', async () => {
+    const before: SyncInfo = (await as(admin).get('/v1/admin/sync')).body;
+    expect(before.coverage.zones.map((z) => z.id)).toEqual(['zone-north', 'zone-south', 'zone-east', 'zone-west', 'zone-central']);
+    const east = (info: SyncInfo) => info.coverage.zones.find((z) => z.id === 'zone-east')!.upcoming;
+    await as(admin).post('/v1/admin/events', {
+      title: 'Steel and Mining Technology Expo Kolkata 2026',
+      startAt: '2026-12-02T10:00:00+05:30',
+      endAt: '2026-12-04T18:00:00+05:30',
+      cityId: 'kolkata',
+      eventType: 'exhibition',
+      officialWebsite: 'https://example.org/steel-kolkata',
+    });
+    const after: SyncInfo = (await as(admin).get('/v1/admin/sync')).body;
+    expect(east(after)).toBe(east(before) + 1);
+  });
 });

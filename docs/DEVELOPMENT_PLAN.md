@@ -55,7 +55,8 @@ Plan date: 1 October 2026. Base spec: the "Event Intelligence India master promp
   - **South:** Hyderabad (HICC/HITEX, where HITEX needs written permission), Chennai Trade Centre, Kochi, Coimbatore (CODISSIA).
   - **East:** Kolkata (Biswa Bangla, Science City), Bhubaneswar, Guwahati.
 - Target: a healthy number of upcoming events in every zone. Show the count per zone in the sync status.
-- In the app: browse and filter by zone. **Done in Phase 6**: North, South, East, West and Central India in the location picker, in natural search ("events in South India") and as Home collections. Still to do: the sources above.
+- In the app: browse and filter by zone. **Done in Phase 6**: North, South, East, West and Central India in the location picker, in natural search ("events in South India") and as Home collections.
+- **Sources: done 2 Oct 2026.** Nine new sources (TradeIndia's trade-show directory for 23 cities, ASSOCHAM, Exhibitions India, Bombay Chamber, IFCCI, AHK India, GCCI, SIATI, Andhra Chamber). Trial: North 194 · West 217 · South 152 · East 36 · Central 16 upcoming events. Admin → Sync & Sources shows the count per region. Still thin: Odisha, Jharkhand, Bihar. Several good ones need permission (The Expo Co, MCCIA; see docs/SOURCES.md, tier B).
 
 **Sources waiting on a decision or on someone else** (details in docs/SOURCES.md):
 - **Team Google Sheet:** template to be shared. Covers events from sites that block bots: SAP, Oracle, AWS, ServiceNow, Microsoft, FICCI, CII, ET, and BIEC and dev.events (below).

@@ -28,6 +28,24 @@ IICC, NASSCOM and BIEC have no feed or structured data, so they're read from the
 
 **Blocked on the server (1 Oct 2026):** `biec` and `dev-events-india` read fine from an office connection but answer **HTTP 403** to our hosted server (Render, Singapore), i.e. they refuse cloud servers. We don't route around that (no proxies, no other IPs), so both are off and their events go in the team sheet. Their definitions stay in the registry; they can be switched back on if either site allows our bot (it identifies itself and links to the app's About page).
 
+## Regional sources (added 2 Oct 2026)
+
+The first live sync had almost nothing outside Delhi NCR (West 0, East 0). A search region by region — about 150 chambers, venues, organisers, state programmes and directories, same rules as above — found these. A full trial sync of all current and new sources together (fresh database, 2 Oct 2026): **887 read → 643 events, 50 duplicates merged across sources, no errors.** Upcoming events by region: **North 194 · West 217 · South 152 · East 36 · Central 16** (online 8).
+
+| Id | Source | Region | What it brings | How it's read | Why it's allowed |
+|---|---|---|---|---|---|
+| `tradeindia` | TradeIndia trade shows (directory) | All | Trade fairs and B2B expos in 23 cities: Delhi, Noida, Mumbai, Pune, Ahmedabad, Gandhinagar, Bengaluru, Chennai, Hyderabad, Kolkata, Guwahati, Indore, Raipur, Jaipur, Chandigarh… (545 in the trial) | Listing data inside each city page (one page per city, plus month pages for the busiest) | robots.txt allows /tradeshows/; terms ([terms_01](https://www.tradeindia.com/about-us/terms/terms_01.html)) have no crawling or scraping clause, only "not obtain information through means not made available" — these are public pages. A directory, so priority 30: an organiser's own data wins. Consumer shows (fashion, gifts, travel, real estate…) are dropped and the rest must match an industry or technology. |
+| `assocham` | ASSOCHAM | All (HQ Delhi) | Summits and conclaves: manufacturing, banking, GST, procurement, CFO, tech (9) | The public JSON its own website loads; city from the description | robots.txt allows all; no terms published |
+| `exhibitions-india` | Exhibitions India Group | North | Convergence India and its co-located expos (AI, data centre, fintech, IoT, security, smart mobility) at Bharat Mandapam (10) | Event cards | robots allows the page; we take no logos or images |
+| `bombay-chamber` | Bombay Chamber of Commerce & Industry | West | AI in Manufacturing, MSME Conclave, Banking Conclave, AI for Supply Chain, certification courses (8 upcoming) | Event sitemap + schema.org data | robots.txt has no rules; no scraping clause |
+| `ifcci` | Indo-French Chamber (IFCCI) | West + chapters | Manufacturing seminars, trade-fair pavilions | Event cards (2 pages) | robots allows the clean URLs; terms cover governing law only |
+| `ahk-india` | Indo-German Chamber (AHK India) | All (HQ Mumbai) | Engineering Summit, AI and law, pavilions at BTS and others | Event cards (2 pages) | robots disallows only cart/payment paths |
+| `gcci` | Gujarat Chamber of Commerce & Industry | West | MSME and AI seminars in Ahmedabad | Event cards | no robots.txt, no terms |
+| `siati` | SIATI (aerospace industry) | South | Aerospace seminars and workshops in Bengaluru | Event cards | no robots.txt, no terms |
+| `andhra-chamber` | Andhra Chamber of Commerce | South | Energy, FMCG and export programmes in Chennai, Vizag, Vijayawada, Secunderabad (about 5 a month; none upcoming on 2 Oct) | Event cards | robots allows all; disclaimer only |
+
+Turn them on in More → Admin → Sync & Sources (or add the ids to `SOURCES_ENABLED` in Render). Odisha, Jharkhand and Bihar still have almost no machine-readable sources: their chamber sites were empty, broken or blocked.
+
 ## Tier B — possible, needs your decision
 
 | Source | Value | Concern | What we'd need |
@@ -37,6 +55,11 @@ IICC, NASSCOM and BIEC have no feed or structured data, so they're read from the
 | Meetup groups (per-group calendar feeds) | SAP, Odoo, AWS, AI, security meetups in Indian cities | Feeds are allowed by robots; Meetup's own terms page couldn't be read | A list of groups you want to follow |
 | Luma calendars (per-calendar feeds) | Bengaluru AI/startup scene | Allowed as a "supported interface" | A list of calendars you want to follow |
 | HITEX (Hyderabad) | Venue calendar with good structured data | Terms forbid use without written permission | Written permission from HITEX |
+| The Expo Co (`theexpoco.com`) | Best South trade-fair calendar found (114 South event pages: ACMEE, Elecxpo, IIIE Kochi, Windergy…) | robots allows us, but its terms forbid "Scrape, crawl, or copy platform data without permission" | Permission (theexpoco@gmail.com) |
+| MCCIA Pune | Richest Pune calendar (45 upcoming; Defence & Aerospace Expo, Pune Expo, Semicon) | Terms forbid "any deep-link, robot, spider or other automatic device" | Permission from MCCIA, or add the big ones by hand |
+| IEEE vTools events (public API) | Technical conferences in every region (e.g. eHaCON Kolkata, conferences in Patna, Rourkela) | Public, documented API (crawl-delay 60 s); most entries are student-branch activities; site terms couldn't be read | Your OK; we'd keep only section/chapter events |
+| EventsEye city pages | Good static lists for many cities, incl. Kolkata metals/mining | No robots.txt or visible terms; third parties say its terms restrict redistribution; many dates are estimates | Your OK after reading its terms |
+| SME Chamber of India, FTCCI Hyderabad, mjunction | A few MSME, energy, pharma, steel and coal events | Boilerplate "no reproduction without permission" (SME Chamber, FTCCI); mjunction has only 1–2 a year | Your OK |
 
 ## Tier C — manual only ("Add by URL" or the team sheet)
 
@@ -45,12 +68,14 @@ These block bots, forbid automated reading in their terms, or have no usable cal
 - **Vendors:** SAP (all SAP sites block bots: SAP NOW, TechEd, SAP Inside Track), Oracle/NetSuite, AWS (Summit India), ServiceNow (World Forum Mumbai), Microsoft (Reactor, AI Tour), Google Cloud, Salesforce World Tour, Infor.
 - **Industry bodies and media:** FICCI (refuses our bot), CII (bot protection), ET portals — ETCIO, ETCISO, ET Manufacturing, ETHRWorld (terms forbid aggregation), DSCI, IAMAI, IMTMA/IMTEX, IEEMA/ELECRAMA, ACMA, UBS Forums, Quantic India, Bengaluru Tech Summit.
 - **Venues and fair organisers:** Bharat Mandapam/ITPO, Chennai Trade Centre, Jio World Centre, NESCO/Bombay Exhibition Centre, Messe Frankfurt India, Messe München India, NürnbergMesse India, Informa Markets.
+- **Regional one-offs (Oct 2026 search):** Koelnmesse India (a few fairs, fragile page), ELCINA, IEEMA, Jasubhai (Chemtech, OGP), Vibrant Gujarat, KDEM (Karnataka), Aero India, BioAsia, KSUM Huddle Global, KMA (Kochi), INFOCOM (Kolkata, November), IME Kolkata (biennial), Indian Institute of Metals NMD-ATM, Bengal Chamber summits, CII IMME (Kolkata), AIMA, TiE chapters (Zoho Backstage pages).
 - **Platforms:** Eventbrite (terms forbid scraping), Hasgeek (terms forbid crawling), Townscript, AllEvents (terms not found).
 
 ## Tier D — not used
 
 10times.com (bot protection), Trescon (blocked), Meetup API (paid), Google Calendar public feeds (robots disallow), PHDCCI (terms), Hyve (no India events), HICC / Biswa Bangla / Mahatma Mandir / PIECC / CODISSIA / Auto Cluster (no usable calendars), Epicor / Workday / conferenceindex / Devfolio / Unstop (not relevant).
-**Blocklisted:** ktpo.in redirects to a gambling site.
+Regional search (Oct 2026), not usable: Ahmedabad and Bombay Management Associations, Elets, biztradeshows, expotobi, FINER, Indian Chamber of Commerce's Glue Up (bot challenges or 403); Neventum (terms); and chamber or venue sites with no upcoming listing (IMC, WTC Mumbai, Goa Chamber, GESIA, NIMA, VIA, MACCIA, SGCCI, Calcutta, Bharat, BNCCI, MCCI, Utkal, FJCCI, Rajasthan Chamber, IIA, STPI, Invest UP/Odisha, HYSEA, T-Hub, Technopark, Infopark, StartupTN, Madras Chamber, IESA, JECC).
+**Blocklisted:** ktpo.in redirects to a gambling site; imtma.in, unicomlearning.com and biapatna.org now point to unrelated or spam sites.
 
 ## Team sheet (recommended)
 

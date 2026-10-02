@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { formatDateRange, formatDateTimeIST, formatRelativePast, type DuplicatePair, type EventDetail, type MergeChoice } from '@eii/shared';
+import { formatDateRange, formatDateTimeIST, formatRelativePast, type DuplicatePair, type EventDetail, type MergeChoice, type ZoneId } from '@eii/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -7,6 +7,7 @@ import { LargeTitleScrollView } from '@/components/layout/LargeTitle';
 import { Button, EmptyState, ErrorState, ListGroup, ListRow, SegmentedControl, showToast, Skeleton, Text, Toggle } from '@/components/ui';
 import { useConflicts, useDuplicates, useMerge, useResolveConflict, useRunSync, useSetSource, useSyncInfo } from '@/hooks/useAdmin';
 import { errorMessage } from '@/lib/errors';
+import { EMPTY_FILTERS, useExploreStore } from '@/store/exploreStore';
 import { radius, spacing, useTheme } from '@/theme';
 
 const dates = (e: EventDetail) => formatDateRange(new Date(e.startAt), new Date(e.endAt));
@@ -214,6 +215,26 @@ export function SyncScreen() {
                 }
               />
             </View>
+
+            {/* Older servers (and data cached from them) don't send coverage. */}
+            {data.coverage ? (
+              <ListGroup header="Upcoming Events by Region" footer="Events everyone can see that haven’t ended yet. Regions with few events need more sources (docs/SOURCES.md).">
+                {data.coverage.zones.map((z) => (
+                  <ListRow
+                    key={z.id}
+                    icon="map"
+                    iconColor={z.upcoming >= 10 ? colors.green : z.upcoming ? colors.orange : colors.red}
+                    title={z.name}
+                    detail={String(z.upcoming)}
+                    onPress={() => {
+                      useExploreStore.getState().set({ ...EMPTY_FILTERS, place: { kind: 'zone', id: z.id as ZoneId }, view: 'list' });
+                      router.navigate('/explore');
+                    }}
+                  />
+                ))}
+                <ListRow icon="globe" iconColor={colors.indigo} title="Online" detail={String(data.coverage.online)} />
+              </ListGroup>
+            ) : null}
 
             <ListGroup header="Sources" footer="A switch set here stays after restarts. Each source’s terms were checked (docs/SOURCES.md): Salesforce and Google groups need your decision first, and BIEC and dev.events refuse our server.">
               {data.sources.map((s) => (

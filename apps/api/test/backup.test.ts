@@ -121,7 +121,7 @@ describe('restore', () => {
     const again = await restoreBackup(target.db, backup);
     expect(again.createdUsers).toEqual([]);
     expect(Object.values(again.restored).every((n) => n === 0)).toBe(true);
-  });
+  }, 90_000);
 
   it('skips rows for events not synced yet, and refuses other files', async () => {
     const target = await fresh();

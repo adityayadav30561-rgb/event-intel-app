@@ -20,7 +20,7 @@ export const CATEGORIES: Topic[] = [
   { id: 'supply-chain', name: 'Supply Chain', keywords: ['supply chain', 'scm'], palette: 'amber', icon: 'git-network' },
   { id: 'procurement', name: 'Procurement', keywords: ['procurement', 'sourcing', 'purchasing'], palette: 'amber', icon: 'cart' },
   { id: 'finance-tech', name: 'Finance Technology', keywords: ['finance', 'cfo', 'accounting'], palette: 'green', icon: 'cash' },
-  { id: 'manufacturing', name: 'Manufacturing', keywords: ['manufacturing', 'factory', 'production', 'machine tool', 'machine tools', 'tooling', 'tooltech', 'imtex', 'foundry', 'casting', 'die casting', 'welding', 'surface finishing', 'metal forming', 'productronica'], palette: 'orange', icon: 'construct' },
+  { id: 'manufacturing', name: 'Manufacturing', keywords: ['manufacturing', 'engineering summit', 'engineering expo', 'engineering technology', 'industrial engineering', 'engineering industry', 'factory', 'production', 'machine tool', 'machine tools', 'tooling', 'tooltech', 'imtex', 'foundry', 'casting', 'die casting', 'welding', 'surface finishing', 'metal forming', 'productronica'], palette: 'orange', icon: 'construct' },
   { id: 'industry-4', name: 'Industry 4.0', keywords: ['industry 4.0', 'smart factory', 'iiot'], palette: 'orange', icon: 'hardware-chip' },
   { id: 'automation', name: 'Industrial Automation', keywords: ['automation', 'robotics', 'plc'], palette: 'orange', icon: 'cog' },
   { id: 'ai', name: 'Artificial Intelligence', keywords: ['ai', 'artificial intelligence', 'genai', 'machine learning', 'ml'], palette: 'violet', icon: 'sparkles' },
@@ -34,7 +34,7 @@ export const CATEGORIES: Topic[] = [
   { id: 'logistics', name: 'Logistics', keywords: ['logistics', 'warehousing', 'freight'], palette: 'amber', icon: 'cube' },
   { id: 'retail-tech', name: 'Retail & E-commerce', keywords: ['retail', 'e-commerce', 'ecommerce', 'd2c'], palette: 'rose', icon: 'storefront' },
   { id: 'startups', name: 'Startups', keywords: ['startup', 'founders', 'venture'], palette: 'violet', icon: 'rocket' },
-  { id: 'business', name: 'Business & Trade', keywords: ['msme', 'export', 'exporters', 'b2b', 'trade fair', 'trade show', 'buyer seller'], palette: 'slate', icon: 'briefcase' },
+  { id: 'business', name: 'Business & Trade', keywords: ['msme', 'msmes', 'sme', 'smes', 'export', 'exporters', 'b2b', 'trade fair', 'trade show', 'buyer seller'], palette: 'slate', icon: 'briefcase' },
   { id: 'gov-tech', name: 'Government Technology', keywords: ['government', 'govtech', 'public sector', 'e-governance'], palette: 'teal', icon: 'business' },
 ];
 
