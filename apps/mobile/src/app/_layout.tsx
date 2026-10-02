@@ -28,7 +28,9 @@ registerServiceWorker();
 function RootStack() {
   const { colors } = useTheme();
   const stage = useSessionStage();
-  const isAdmin = useCurrentUser()?.role === 'admin';
+  const role = useCurrentUser()?.role;
+  const isAdmin = role === 'admin';
+  const canAdmin = role === 'admin' || role === 'researcher';
   useMeSync();
   useTrackingLifecycle();
   usePushRefresh();
@@ -80,6 +82,16 @@ function RootStack() {
         <Stack.Screen name="settings/reminders" />
         <Stack.Protected guard={isAdmin}>
           <Stack.Screen name="settings/team" />
+        </Stack.Protected>
+        <Stack.Protected guard={canAdmin}>
+          <Stack.Screen name="admin/index" />
+          <Stack.Screen name="admin/review" />
+          <Stack.Screen name="admin/add" />
+          <Stack.Screen name="admin/event/[id]" />
+          <Stack.Screen name="admin/duplicates" />
+          <Stack.Screen name="admin/duplicate/[id]" />
+          <Stack.Screen name="admin/conflicts" />
+          <Stack.Screen name="admin/sync" />
         </Stack.Protected>
         <Stack.Screen name="+not-found" />
       </Stack.Protected>

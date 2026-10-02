@@ -1,11 +1,12 @@
 import { ApiAccountRepository } from './api/ApiAccountRepository';
+import { ApiAdminRepository } from './api/ApiAdminRepository';
 import { createApiClient } from './api/client';
 import { ApiEventRepository } from './api/ApiEventRepository';
 import { MockAccountRepository } from './mock/MockAccountRepository';
 import { MockEventRepository } from './mock/MockEventRepository';
-import type { AccountRepository, EventRepository } from './types';
+import type { AccountRepository, AdminRepository, EventRepository } from './types';
 
-export type { AccountRepository, EventRepository, RankedEvent } from './types';
+export type { AccountRepository, AdminRepository, EventRepository, ImportDraft, RankedEvent } from './types';
 export { ApiError } from './api/client';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, '');
@@ -18,3 +19,9 @@ const api = dataMode === 'api' ? createApiClient(apiUrl!) : undefined;
 /** The active data sources. Nothing above the repository layer knows which ones they are. */
 export const eventRepository: EventRepository = api ? new ApiEventRepository(api) : new MockEventRepository();
 export const accountRepository: AccountRepository = api ? new ApiAccountRepository(api) : new MockAccountRepository(eventRepository);
+
+/** Admin tools need the live server; with sample data every call explains that. */
+const sampleOnly = new Proxy({} as AdminRepository, {
+  get: () => () => Promise.reject(new Error('Admin tools need the live server.')),
+});
+export const adminRepository: AdminRepository = api ? new ApiAdminRepository(api) : sampleOnly;

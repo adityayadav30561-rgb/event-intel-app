@@ -4,10 +4,9 @@ import { Router, type RequestHandler } from 'express';
 import type { Config } from '../../config';
 import type { Db } from '../../db/client';
 import { refreshDemoData } from '../../db/seed';
-import { runEventSync } from '../../ingestion/sync';
 import { updateStatuses } from '../../jobs/statusJob';
 import { HttpError } from '../../lib/http';
-import { logger } from '../../lib/logger';
+import type { SyncScheduler } from '../../jobs/syncScheduler';
 import type { NotificationService } from '../notifications/service';
 
 /** Constant-time check of the cron secret sent in the X-Cron-Secret header. */
@@ -35,39 +34,12 @@ const istDay = (d: Date) => {
  * statuses hourly, sample data once a day, the event sync every EVENT_SYNC_INTERVAL_HOURS.
  * The sync can take minutes, so it runs in the background and the tick answers at once.
  */
-export function internalRoutes(db: Db, config: Config, notifications: NotificationService): Router {
+export function internalRoutes(db: Db, config: Config, notifications: NotificationService, sync: SyncScheduler): Router {
   const router = Router();
-  const syncEveryMs = config.EVENT_SYNC_INTERVAL_HOURS * 3_600_000;
   let busy = false;
   let lastStatusRun = 0;
   let lastDemoDay = '';
   let lastTomorrowDay = '';
-  /** When the next sync is due; read from the database once after a restart. */
-  let nextSyncAt: number | null = null;
-  let syncRunning = false;
-
-  const startSyncIfDue = async (now: Date): Promise<boolean> => {
-    if (syncRunning) return false;
-    if (nextSyncAt === null) {
-      const [last] = await db.query<{ started_at: Date }>(`select started_at from sync_runs where status <> 'running' order by started_at desc limit 1`);
-      nextSyncAt = last ? new Date(last.started_at).getTime() + syncEveryMs : 0;
-    }
-    if (now.getTime() < nextSyncAt) return false;
-    nextSyncAt = now.getTime() + syncEveryMs;
-    syncRunning = true;
-    void runEventSync(db, { now })
-      .then(async (summary) => {
-        logger.info({ summary }, 'Event sync finished');
-        // Changes to followed events and new matches go out right after the data changes.
-        const alerts = await notifications.afterSync(new Date());
-        logger.info({ alerts }, 'Alerts after sync');
-      })
-      .catch((error) => logger.error({ err: error }, 'Event sync failed'))
-      .finally(() => {
-        syncRunning = false;
-      });
-    return true;
-  };
 
   router.post('/tick', requireCronSecret(config.CRON_SECRET), async (_req, res) => {
     if (busy) {
@@ -87,8 +59,8 @@ export function internalRoutes(db: Db, config: Config, notifications: Notificati
         result.statuses = await updateStatuses(db, now);
         lastStatusRun = started;
       }
-      if (nextSyncAt === null || started >= nextSyncAt) {
-        result.syncStarted = await startSyncIfDue(now);
+      if (!sync.nextAt || started >= sync.nextAt.getTime()) {
+        result.syncStarted = await sync.runIfDue(now);
       }
       // Reminders: the due time is kept in memory, so this only touches the database when one is due.
       const reminders = await notifications.remindersIfDue(now);

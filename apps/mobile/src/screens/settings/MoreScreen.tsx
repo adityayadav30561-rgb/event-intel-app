@@ -9,6 +9,7 @@ import { Avatar, Button, ListGroup, ListRow, Sheet, Text } from '@/components/ui
 import { BUILD } from '@/constants/build';
 import { usePreferences, useSignOut } from '@/hooks/useAccount';
 import { useReminders } from '@/hooks/useAlerts';
+import { useAdminOverview } from '@/hooks/useAdmin';
 import { useSavedSearches } from '@/hooks/useDiscovery';
 import { useSyncStatus } from '@/hooks/useEvents';
 import { usePackIndex } from '@/services/offlinePacks';
@@ -27,6 +28,9 @@ export function MoreScreen() {
   const signOut = useSignOut();
   const packCount = Object.keys(usePackIndex((s) => s.packs)).length;
   const savedCount = useSavedSearches().data?.length ?? 0;
+  const overview = useAdminOverview().data;
+  const waiting = overview ? overview.review + overview.duplicates + overview.conflicts : 0;
+  const adminBadge = waiting ? `${waiting} to review` : undefined;
   const reminderCount = (useReminders().data ?? []).filter((r) => !r.sentAt).length;
   const sync = useSyncStatus().data;
   const dataDetail = !sync ? undefined : sync.mode === 'sample' ? 'Sample' : sync.lastUpdatedAt ? `Updated ${formatRelativePast(new Date(sync.lastUpdatedAt))}` : 'Not yet updated';
@@ -57,7 +61,9 @@ export function MoreScreen() {
             <ListRow icon="alarm" iconColor={colors.blue} title="Reminders" detail={reminderCount ? String(reminderCount) : undefined} onPress={() => router.push('/settings/reminders')} />
             <ListRow icon="bookmark" iconColor={colors.orange} title="Saved Searches" detail={savedCount ? String(savedCount) : undefined} onPress={() => router.push('/settings/searches')} />
             <ListRow icon="key" iconColor={colors.gray} title="Password" onPress={() => router.push('/settings/password')} />
-            {user?.role === 'admin' ? <ListRow icon="people" iconColor={colors.blue} title="Team" onPress={() => router.push('/settings/team')} /> : null}
+            {user?.role === 'admin' || user?.role === 'researcher' ? (
+              <ListRow icon="shield-checkmark" iconColor={colors.indigo} title="Admin" detail={adminBadge} onPress={() => router.push('/admin')} />
+            ) : null}
           </ListGroup>
 
           <ListGroup>

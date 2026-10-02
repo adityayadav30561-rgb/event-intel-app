@@ -12,6 +12,9 @@ import { accountRoutes, authRoutes, requireAuth } from './modules/auth/routes';
 import type { AuthService } from './modules/auth/service';
 import { eventRoutes } from './modules/events/routes';
 import { EventService } from './modules/events/service';
+import { SyncScheduler } from './jobs/syncScheduler';
+import { adminRoutes } from './modules/admin/routes';
+import { AdminService } from './modules/admin/service';
 import { internalRoutes } from './modules/internal/routes';
 import { calendarLinkRoutes, publicCalendarRoutes } from './modules/notifications/calendar';
 import type { PushSender } from './modules/notifications/push';
@@ -61,6 +64,7 @@ export function createApp(db: Db, config: Config, auth: AuthService, sender: Pus
 
   const events = new EventService(db);
   const notifications = new NotificationService(db, events, events.repo, sender);
+  const sync = new SyncScheduler(db, config.EVENT_SYNC_INTERVAL_HOURS * 3_600_000, notifications);
   // Calendar files open in the phone's calendar app, without the app's sign-in: signed links instead.
   app.use(publicCalendarRoutes(auth, events));
   const v1 = express.Router();
@@ -73,12 +77,14 @@ export function createApp(db: Db, config: Config, auth: AuthService, sender: Pus
   v1.use(savedSearchRoutes(db));
   v1.use(notificationRoutes(notifications, events));
   v1.use(calendarLinkRoutes(auth, events));
+  // Data tools for admins and researchers (Team is under /admin/users, admin-only).
+  v1.use('/admin', adminRoutes(new AdminService(db, events.repo, sync)));
   v1.use(trackingRoutes(new TrackingService(db, events.repo)));
   v1.use(eventRoutes(events));
   v1.use(taxonomyRoutes(db, events));
   v1.use(syncRoutes(db, config));
   app.use('/v1', v1);
-  app.use('/internal', rateLimit({ windowMs: 60_000, limit: 20 }), internalRoutes(db, config, notifications));
+  app.use('/internal', rateLimit({ windowMs: 60_000, limit: 20 }), internalRoutes(db, config, notifications, sync));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

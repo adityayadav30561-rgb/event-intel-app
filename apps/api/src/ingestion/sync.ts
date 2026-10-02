@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { EventDetail } from '@eii/shared';
+import { formatDateRange, type ConflictValue, type EventDetail } from '@eii/shared';
 import type { Db } from '../db/client';
 import { EventRepository } from '../modules/events/repository';
 import { upsertEvent } from '../modules/events/writer';
@@ -226,6 +226,7 @@ async function processEvent(
     );
     const incomingWins = source.priority >= (primary?.priority ?? -1);
     const overrides = new Set((await db.query<{ field: string }>('select field from field_overrides where occurrence_id = $1', [occurrenceId])).map((r) => r.field));
+    if (!incomingWins) await recordConflicts(db, occurrenceId, existing, candidate, source, overrides);
     const { merged, changed } = mergeEvent({ existing, incoming: { ...candidate, id: occurrenceId }, incomingWins, overrides, now });
     if (match.via !== 'source_record') summary.duplicates++;
     if (changed) {
@@ -287,4 +288,46 @@ async function processEvent(
       occurrenceId,
     ],
   );
+}
+
+const istDay = (isoTime: string) => new Date(new Date(isoTime).getTime() + 5.5 * 3600_000).toISOString().slice(0, 10);
+const sameText = (a?: string, b?: string) => (a ?? '').trim().toLowerCase() === (b ?? '').trim().toLowerCase();
+
+/**
+ * A lower-priority source disagreeing on the date or venue doesn't change the event, but the
+ * disagreement is kept for review (More → Admin → Conflicts), unless the team already fixed it.
+ */
+async function recordConflicts(db: Db, occurrenceId: string, existing: EventDetail, incoming: EventDetail, source: SourceRow, overrides: Set<string>): Promise<void> {
+  const [primary] = await db.query<{ id: string | null; name: string | null }>(
+    'select s.id, s.name from event_occurrences o left join sources s on s.id = o.primary_source_id where o.id = $1',
+    [occurrenceId],
+  );
+  const current = { sourceId: primary?.id ?? null, sourceName: primary?.name ?? 'Current' };
+  const conflicts: { field: 'date' | 'venue'; values: ConflictValue[] }[] = [];
+  if (!overrides.has('startAt') && (istDay(existing.startAt) !== istDay(incoming.startAt) || istDay(existing.endAt) !== istDay(incoming.endAt))) {
+    const label = (e: EventDetail) => formatDateRange(new Date(e.startAt), new Date(e.endAt));
+    conflicts.push({
+      field: 'date',
+      values: [
+        { ...current, label: label(existing), patch: { startAt: existing.startAt, endAt: existing.endAt, allDay: existing.allDay } },
+        { sourceId: source.id, sourceName: source.name, label: label(incoming), patch: { startAt: incoming.startAt, endAt: incoming.endAt, allDay: incoming.allDay } },
+      ],
+    });
+  }
+  if (!overrides.has('venue') && existing.venueName && incoming.venueName && !sameText(existing.venueName, incoming.venueName)) {
+    conflicts.push({
+      field: 'venue',
+      values: [
+        { ...current, label: existing.venueName, patch: { venueName: existing.venueName, venueAddress: existing.venue?.address ?? null } },
+        { sourceId: source.id, sourceName: source.name, label: incoming.venueName, patch: { venueName: incoming.venueName, venueAddress: incoming.venue?.address ?? null } },
+      ],
+    });
+  }
+  for (const c of conflicts) {
+    await db.query(
+      `insert into source_conflicts (id, occurrence_id, field, values_json) values ($1, $2, $3, $4)
+       on conflict (occurrence_id, field) where resolved_at is null do update set values_json = excluded.values_json`,
+      [`cf_${randomUUID()}`, occurrenceId, c.field, JSON.stringify(c.values)],
+    );
+  }
 }

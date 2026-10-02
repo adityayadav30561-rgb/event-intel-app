@@ -13,7 +13,7 @@ export type ImportResult =
   | { kind: 'ready'; event: EventDetail; raw: RawEvent }
   | { kind: 'needs_details'; draft: Partial<RawEvent>; missing: SkipReason | 'no_event_data' };
 
-const MANUAL_SOURCE: SourceRow = {
+export const MANUAL_SOURCE: SourceRow = {
   id: 'manual',
   name: 'Added by the team',
   adapter: 'manual',

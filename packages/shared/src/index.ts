@@ -17,3 +17,4 @@ export * from './search/natural';
 export * from './feeds/collections';
 export * from './search/mapClusters';
 export * from './contracts/notifications';
+export * from './contracts/admin';

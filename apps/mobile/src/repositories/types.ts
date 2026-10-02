@@ -1,4 +1,4 @@
-import type { AppNotification, CalendarLinks, NotificationSettings, Reminder, AuthSession, CityCount, EventDetail, EventQuery, EventSummary, HomeFeed, HomeQuery, Me, OrganizerProfile, Page, Preferences, Relevance, Role, MapQuery, MapResponse, PlannedVisitor, SavedSearch, SavedSearchQuery, SyncStatus, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
+import type { AdminCreateEvent, AdminEvent, AdminEventPatch, AdminOverview, ConflictItem, DuplicatePair, MergeChoice, ReviewItem, SyncInfo, AppNotification, CalendarLinks, NotificationSettings, Reminder, AuthSession, CityCount, EventDetail, EventQuery, EventSummary, HomeFeed, HomeQuery, Me, OrganizerProfile, Page, Preferences, Relevance, Role, MapQuery, MapResponse, PlannedVisitor, SavedSearch, SavedSearchQuery, SyncStatus, TeamMember, TemporaryPassword, TrackingChange, TrackingSnapshot } from '@eii/shared';
 
 /**
  * Everything the app needs from an event data source. Screens never see which implementation
@@ -53,4 +53,30 @@ export interface AccountRepository {
   addReminder(eventId: string, offsetMinutes: number): Promise<Reminder[]>;
   removeReminder(id: string): Promise<void>;
   calendarLinks(eventId: string): Promise<CalendarLinks>;
+}
+
+/** What "Add by URL" found: a complete event, or a draft to finish by hand. */
+export type ImportDraft =
+  | { kind: 'ready'; event: EventDetail }
+  | { kind: 'needs_details'; draft: { title?: string; description?: string; imageUrl?: string; sourceUrl?: string; officialUrl?: string; start?: string; end?: string; city?: string; venueName?: string; address?: string }; missing: string };
+
+/** Admin and researcher tools (Phase 8). Live server only. */
+export interface AdminRepository {
+  overview(): Promise<AdminOverview>;
+  review(): Promise<ReviewItem[]>;
+  event(id: string): Promise<AdminEvent>;
+  edit(id: string, patch: AdminEventPatch): Promise<AdminEvent>;
+  clearOverride(id: string, field: string): Promise<AdminEvent>;
+  verify(id: string): Promise<void>;
+  reject(id: string): Promise<void>;
+  importUrl(url: string): Promise<ImportDraft>;
+  create(input: AdminCreateEvent): Promise<string>;
+  duplicates(): Promise<DuplicatePair[]>;
+  merge(id: string, choice: MergeChoice): Promise<string>;
+  dismissDuplicate(id: string): Promise<void>;
+  conflicts(): Promise<ConflictItem[]>;
+  resolveConflict(id: string, index: number): Promise<void>;
+  sync(): Promise<SyncInfo>;
+  runSync(): Promise<boolean>;
+  setSourceEnabled(id: string, enabled: boolean | null): Promise<void>;
 }

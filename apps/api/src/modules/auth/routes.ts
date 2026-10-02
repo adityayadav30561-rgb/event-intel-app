@@ -80,17 +80,17 @@ export function accountRoutes(auth: AuthService): Router {
   // the free host has no shell, so accounts can't be created from a command line on the server.
   const admin = Router();
   admin.use(requireRole('admin'));
-  admin.get('/users', async (_req, res) => {
+  admin.get('/', async (_req, res) => {
     res.json({ items: await auth.listMembers() });
   });
-  admin.post('/users', async (req, res) => {
+  admin.post('/', async (req, res) => {
     res.status(201).json(await auth.createMember(req.auth!, parse(createUserSchema, req.body), context(req)));
   });
-  admin.patch('/users/:id', async (req, res) => {
+  admin.patch('/:id', async (req, res) => {
     const id = parse(z.string().min(1).max(60), req.params.id);
     res.json(await auth.updateMember(req.auth!, id, parse(updateUserSchema, req.body), context(req)));
   });
-  // Mounted under /admin so the role check applies only there.
-  router.use('/admin', admin);
+  // Mounted under /admin/users so the admin-only check applies only there.
+  router.use('/admin/users', admin);
   return router;
 }

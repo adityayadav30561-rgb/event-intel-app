@@ -203,7 +203,9 @@ export async function syncSourceRegistry(db: Db, enabledIds: string[], curatedSh
       `insert into sources (id, name, adapter, kind, config, priority, trusted, enabled, compliance_note)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        on conflict (id) do update set name = excluded.name, adapter = excluded.adapter, kind = excluded.kind, config = excluded.config,
-         priority = excluded.priority, trusted = excluded.trusted, enabled = excluded.enabled, compliance_note = excluded.compliance_note`,
+         priority = excluded.priority, trusted = excluded.trusted, compliance_note = excluded.compliance_note,
+         -- A switch set in the app wins over SOURCES_ENABLED.
+         enabled = coalesce(sources.admin_enabled, excluded.enabled)`,
       [s.id, s.name, s.adapter, s.kind, JSON.stringify(s.config), s.priority, s.trusted, enabled.has(s.id), s.compliance],
     );
   }
