@@ -21,6 +21,7 @@ import type { SyncScheduler } from '../../jobs/syncScheduler';
 import { HttpError, notFound } from '../../lib/http';
 import type { EventRepository } from '../events/repository';
 import { upsertEvent } from '../events/writer';
+import { exportBackup } from './backup';
 
 const iso = (d: Date | string | null) => (d ? new Date(d).toISOString() : null);
 
@@ -446,6 +447,12 @@ export class AdminService {
   }
 
   /** On, off, or back to the server setting (null). Survives restarts. */
+  async backup(actorId: string) {
+    const backup = await exportBackup(this.db, this.repo);
+    await this.audit(actorId, 'backup_downloaded', 'backup', backup.createdAt);
+    return backup;
+  }
+
   async setSourceEnabled(actorId: string, id: string, enabled: boolean | null): Promise<void> {
     const [row] = await this.db.query<{ id: string }>(
       `update sources set admin_enabled = $2, enabled = coalesce($2, enabled) where id = $1 and kind <> 'demo' and id <> 'manual' returning id`,

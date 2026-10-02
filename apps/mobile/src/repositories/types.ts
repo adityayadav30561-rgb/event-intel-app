@@ -79,4 +79,6 @@ export interface AdminRepository {
   sync(): Promise<SyncInfo>;
   runSync(): Promise<boolean>;
   setSourceEnabled(id: string, enabled: boolean | null): Promise<void>;
+  /** The team's data as one JSON file (admins only). */
+  backup(): Promise<{ createdAt: string }>;
 }

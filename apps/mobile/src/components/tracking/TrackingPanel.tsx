@@ -8,6 +8,7 @@ import { useReminders, useToggleReminder } from '@/hooks/useAlerts';
 import { useNow } from '@/hooks/useNow';
 import { errorMessage } from '@/lib/errors';
 import { accountRepository } from '@/repositories';
+import { analytics } from '@/services/analytics';
 import { openExternal } from '@/services/links';
 import { trackingActions, useChecklist, useNote, useTracked, useVisitors } from '@/hooks/useTracking';
 import { removePack, savePack, useHasPack } from '@/services/offlinePacks';
@@ -212,6 +213,7 @@ function SaveToggle({ icon, label, active, onPress }: { icon: 'bookmark' | 'noti
 function CalendarSheet({ visible, eventId, onClose }: { visible: boolean; eventId: string; onClose: () => void }) {
   const [busy, setBusy] = useState<'ics' | 'google' | null>(null);
   const open = async (kind: 'ics' | 'google') => {
+    analytics.track('calendar_add', { kind });
     setBusy(kind);
     try {
       const links = await accountRepository.calendarLinks(eventId);

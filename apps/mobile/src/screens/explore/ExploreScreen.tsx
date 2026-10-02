@@ -14,6 +14,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useCreateSavedSearch, useSavedSearches } from '@/hooks/useDiscovery';
 import { useEventSearch } from '@/hooks/useEvents';
 import { errorMessage } from '@/lib/errors';
+import { analytics } from '@/services/analytics';
 import { currentPosition } from '@/services/location';
 import { describeSearch, exploreQuery, extraFilterCount, fromSavedQuery, hasAnyFilter, toSavedQuery, useExploreStore, useRecentSearches } from '@/store/exploreStore';
 import { placeName } from '@/store/placeStore';
@@ -66,6 +67,7 @@ export function ExploreScreen() {
   useEffect(() => {
     if (q !== useExploreStore.getState().q) useExploreStore.getState().set({ q });
     if (q.length >= 2) {
+      analytics.track('search', { words: q.split(/s+/).length });
       const timer = setTimeout(() => useRecentSearches.getState().add(q), 1500);
       return () => clearTimeout(timer);
     }

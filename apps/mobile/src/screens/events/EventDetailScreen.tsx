@@ -16,7 +16,7 @@ import {
   type EventDetail,
 } from '@eii/shared';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Animated, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Artwork, EventTile, RelevanceBadge, StatusBadge } from '@/components/event';
@@ -26,6 +26,7 @@ import { Avatar, EmptyState, ErrorState, IconButton, ListGroup, ListRow, Section
 import { useRelevance } from '@/hooks/useAccount';
 import { useEvent, useRelatedEvents } from '@/hooks/useEvents';
 import { openDirections, openExternal } from '@/services/links';
+import { analytics } from '@/services/analytics';
 import { shareEvent } from '@/services/share';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -36,6 +37,9 @@ const useNativeDriver = Platform.OS !== 'web';
 export function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const event = useEvent(id);
+  useEffect(() => {
+    if (id) analytics.track('event_view');
+  }, [id]);
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const [scrollY] = useState(() => new Animated.Value(0));

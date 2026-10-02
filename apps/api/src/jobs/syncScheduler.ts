@@ -1,4 +1,5 @@
 import type { Db } from '../db/client';
+import { pruneOldData } from '../db/retention';
 import { runEventSync } from '../ingestion/sync';
 import { logger } from '../lib/logger';
 import type { NotificationService } from '../modules/notifications/service';
@@ -48,6 +49,7 @@ export class SyncScheduler {
         // Changes to followed events and new matches go out right after the data changes.
         const alerts = await this.notifications.afterSync(new Date());
         logger.info({ alerts }, 'Alerts after sync');
+        logger.info({ pruned: await pruneOldData(this.db) }, 'Old data removed');
       })
       .catch((error) => logger.error({ err: error }, 'Event sync failed'))
       .finally(() => {

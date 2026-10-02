@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
 import { AppState, Platform } from 'react-native';
 import { accountRepository } from '@/repositories';
+import { analytics } from '@/services/analytics';
 import { loadPackIndex, removeAllPacks } from '@/services/offlinePacks';
 import { scheduleTrackingSync, syncTracking } from '@/services/trackingSync';
 import { useNow } from './useNow';
@@ -39,11 +40,18 @@ export function trackingActions(event: EventSummary | EventDetail) {
   const current = () => useTrackingStore.getState().view.tracking[event.id];
   const eventId = event.id;
   return {
-    setSaved: (value: boolean) => record({ type: 'tracking', eventId, field: 'saved', value }, event),
-    setFollowing: (value: boolean) => record({ type: 'tracking', eventId, field: 'following', value }, event),
+    setSaved: (value: boolean) => {
+      analytics.track('event_save', { value });
+      record({ type: 'tracking', eventId, field: 'saved', value }, event);
+    },
+    setFollowing: (value: boolean) => {
+      analytics.track('event_follow', { value });
+      record({ type: 'tracking', eventId, field: 'following', value }, event);
+    },
     setStatus: (value: VisitStatus | null) => {
       // Planning a visit keeps the event in Saved too.
       if (value && value !== 'not_visited' && !current()?.saved) record({ type: 'tracking', eventId, field: 'saved', value: true }, event);
+      analytics.track('visit_status', { status: value ?? 'none' });
       record({ type: 'tracking', eventId, field: 'status', value }, event);
     },
     setVisitDate: (value: string | null) => record({ type: 'tracking', eventId, field: 'visitDate', value }, event),

@@ -53,6 +53,7 @@ export function SegmentedControl<T extends string>({ segments, value, onChange }
           <Pressable
             key={segment.value}
             onPress={() => onChange(segment.value)}
+            hitSlop={{ top: 5, bottom: 5 }}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             style={({ pressed }) => [styles.segment, pressed && !active && { opacity: 0.6 }]}

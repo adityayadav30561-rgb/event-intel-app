@@ -35,8 +35,10 @@ export function EventMap({ query, onOpen }: { query: EventQuery; onOpen: (id: st
     let cancelled = false;
     let instance: MapLibreMap | undefined;
     void (async () => {
-      const { default: maplibregl } = await import('maplibre-gl');
+      const maplibregl = await import('maplibre-gl');
       if (cancelled || !container.current) return;
+      // The tile worker files are copied into the site by scripts/copy-map-worker.mjs.
+      maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
       instance = new maplibregl.Map({
         container: container.current as unknown as HTMLElement,
         style: STYLE[scheme === 'dark' ? 'dark' : 'light'],
@@ -101,7 +103,7 @@ export function EventMap({ query, onOpen }: { query: EventQuery; onOpen: (id: st
     const instance = map.current;
     if (!instance || !data) return;
     let cancelled = false;
-    void import('maplibre-gl').then(({ default: maplibregl }) => {
+    void import('maplibre-gl').then((maplibregl) => {
       if (cancelled) return;
       markers.current.forEach((m) => m.remove());
       markers.current = [

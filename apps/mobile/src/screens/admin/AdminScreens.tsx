@@ -9,6 +9,7 @@ import { Button, EmptyState, ErrorState, FormField, ListGroup, ListRow, showToas
 import { useAdminEvent, useAdminOverview, useClearOverride, useCreateEvent, useEditEvent, useReviewDecision, useReviewQueue } from '@/hooks/useAdmin';
 import { errorMessage } from '@/lib/errors';
 import { adminRepository, type ImportDraft } from '@/repositories';
+import { saveFile } from '@/services/share';
 import { useCurrentUser } from '@/store/sessionStore';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -19,6 +20,19 @@ export function AdminScreen() {
   const isAdmin = useCurrentUser()?.role === 'admin';
   const o = overview.data;
   const count = (n: number | undefined) => (n ? String(n) : undefined);
+  const [backingUp, setBackingUp] = useState(false);
+  const downloadBackup = async () => {
+    setBackingUp(true);
+    try {
+      const backup = await adminRepository.backup();
+      const result = await saveFile(`eii-backup-${backup.createdAt.slice(0, 10)}.json`, JSON.stringify(backup));
+      if (result === 'saved') showToast('Backup ready', 'checkmark-circle');
+    } catch (error) {
+      showToast(errorMessage(error), 'alert-circle');
+    } finally {
+      setBackingUp(false);
+    }
+  };
   return (
     <LargeTitleScrollView title="Admin" back>
       <View style={styles.body}>
@@ -29,7 +43,7 @@ export function AdminScreen() {
           <ListRow icon="git-compare" iconColor={colors.red} title="Source Conflicts" detail={count(o?.conflicts)} onPress={() => router.push('/admin/conflicts')} />
           <ListRow icon="add-circle" iconColor={colors.green} title="Add Event" onPress={() => router.push('/admin/add')} />
         </ListGroup>
-        <ListGroup header="Data">
+        <ListGroup header="Data" footer={isAdmin ? 'The backup holds everyone’s saves, plans, notes, checklists, reminders, saved searches and your edits. Events from sources come back with a sync. Keep it private.' : undefined}>
           <ListRow
             icon="sync"
             iconColor={colors.blue}
@@ -39,6 +53,9 @@ export function AdminScreen() {
             onPress={() => router.push('/admin/sync')}
           />
           {isAdmin ? <ListRow icon="people" iconColor={colors.gray} title="Team" onPress={() => router.push('/settings/team')} /> : null}
+          {isAdmin ? (
+            <ListRow icon="archive" iconColor={colors.teal} title="Download Backup" detail={backingUp ? 'Preparing…' : undefined} onPress={backingUp ? undefined : downloadBackup} />
+          ) : null}
         </ListGroup>
       </View>
     </LargeTitleScrollView>

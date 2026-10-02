@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import { disablePush, enablePush, pushStatus, refreshPushRegistration, type PushStatus } from '@/platform/push';
 import { accountRepository } from '@/repositories';
+import { analytics } from '@/services/analytics';
 import { useSessionStage } from '@/store/sessionStore';
 
 /** Alerts, inbox and reminders (Phase 7). */
@@ -108,6 +109,7 @@ export function useToggleReminder(eventId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async ({ offsetMinutes, existing }: { offsetMinutes: number; existing?: Reminder }) => {
+      if (!existing) analytics.track('reminder_set', { offsetMinutes });
       if (existing) {
         await accountRepository.removeReminder(existing.id);
         return (client.getQueryData<Reminder[]>(keys.reminders) ?? []).filter((r) => r.id !== existing.id);

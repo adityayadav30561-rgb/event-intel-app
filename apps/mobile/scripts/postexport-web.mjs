@@ -7,7 +7,30 @@ import path from 'node:path';
 const file = path.resolve('dist/index.html');
 let html = fs.readFileSync(file, 'utf8');
 
+// Content-Security-Policy (spec §125): scripts only from this site; data from the app's API and
+// map tiles over HTTPS; images from any HTTPS host (event pictures come from organisers' sites).
+// React Native Web sets inline styles, so styles allow 'unsafe-inline'; the map uses a blob worker.
+// A build pointed at a local API (for testing) may also talk to it over plain http.
+const api = process.env.EXPO_PUBLIC_API_URL ?? '';
+const localApi = api.startsWith('http://') ? new URL(api).origin : '';
+const csp = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "worker-src 'self' blob:",
+  "child-src 'self' blob:",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  `connect-src 'self' https:${localApi ? ` ${localApi}` : ''}`,
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join('; ');
+
 const head = `
+    <meta http-equiv="Content-Security-Policy" content="${csp}" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
     <meta name="description" content="Discover and track professional events across India: conferences, expos, summits and trade shows." />
     <link rel="manifest" href="/manifest.json" />

@@ -22,6 +22,8 @@ export function Chip({ label, selected, menu, icon, onPress }: Props) {
       accessibilityRole="button"
       accessibilityState={{ selected }}
       aria-selected={selected}
+      // 34 pt tall; the touch area reaches 44 pt (Apple's minimum) without bigger chips.
+      hitSlop={{ top: 5, bottom: 5 }}
       accessibilityLabel={label}
       style={({ pressed }) => [
         styles.chip,

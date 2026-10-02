@@ -1,6 +1,7 @@
 import type { EventDetail } from '@eii/shared';
 import { create } from 'zustand';
 import { packStorage } from '@/platform/localDb';
+import { analytics } from './analytics';
 
 /**
  * Offline event packs (§81): a full copy of an event — overview, venue, agenda, speakers,
@@ -45,6 +46,7 @@ async function uncacheImage(url: string | undefined) {
 }
 
 export async function savePack(event: EventDetail): Promise<void> {
+  analytics.track('offline_pack_save');
   const pack: EventPack = { event, savedAt: new Date().toISOString(), bytes: JSON.stringify(event).length };
   await packStorage.set(event.id, pack);
   usePackIndex.setState((s) => ({ packs: { ...s.packs, [event.id]: info(pack) } }));

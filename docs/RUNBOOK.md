@@ -75,6 +75,30 @@ There's no public sign-up. Everyone signs in with an account the admin creates.
 - **Rules:** everything goes to the inbox; at most 3 non-critical pushes per person per day; quiet hours (default 9 PM–8 AM) hold non-critical ones; cancellations, postponements, date changes and reminders always come through; the same alert is never sent twice.
 - **Calendar files:** "Add to Calendar" opens a signed link to `/calendar/<event>.ics` on the API (valid for a day), so the phone's calendar can read it without signing in.
 
+## Backups (Phase 9)
+
+Two layers, both free:
+
+1. **Neon's own history.** Neon can restore the database to an earlier moment (Dashboard → your project → **Restore**). The free plan keeps only a short window (hours, not weeks), so this is for "something went wrong today".
+2. **The team backup file.** More → Admin → **Download Backup** (admin only) saves one JSON file: accounts (never passwords), interests, saves, follows, visit plans, notes, checklists, reminders, saved searches, alert settings, events added by hand, edited fields, review and merge decisions, and source on/off choices. Events from sources aren't in it; a sync brings them back. On iPhone choose **Save to Files**. **Do this monthly and after big edits**, and keep the file private (it contains everyone's notes).
+
+**Restoring the file** (onto a new or emptied Neon database), from this computer:
+1. Put the Neon connection string in `apps/api/.env` as `DATABASE_URL=…` (that file is gitignored; remove the line afterwards).
+2. `npm run cli -w @eii/api -- sync` to bring the events back.
+3. `npm run cli -w @eii/api -- restore path/to/eii-backup-YYYY-MM-DD.json`.
+4. The report lists accounts it had to create: give each one a password in More → Team → **Reset Password**. If it says rows were skipped, a source hasn't returned that event yet: run the sync again later and restore again (restoring twice never duplicates or overwrites anything).
+
+`npm run cli -w @eii/api -- backup` makes the same file from this computer.
+
+**Housekeeping:** after each sync the API deletes sign-ins that expired over a week ago and notifications older than six months.
+
+## Adding a source
+
+1. Check it's allowed: robots.txt permits it and there's no login, paywall or bot protection (see [SOURCES.md](SOURCES.md) for the rules and the current list).
+2. Add its definition in `apps/api/src/ingestion/registry.ts` (using an existing reader: JSON-LD pages, iCal, RSS, sitemaps, event listing cards, confs.tech, or the team sheet).
+3. Try it without saving: `npm run cli -w @eii/api -- try-source <id>`.
+4. Deploy, then add the id to `SOURCES_ENABLED` in Render → Environment (or turn it on in More → Admin → Sync & Sources). The next sync picks it up; **Run Sync Now** starts one immediately.
+
 ## Everyday commands
 
 ```bash
@@ -102,6 +126,18 @@ Delete it to use the bundled sample data instead. (Use the `.development.local` 
 | `/health?db=1` fails | Neon dashboard | Database suspended or over its monthly compute; check Neon usage. |
 | Tick returns 401 | Header name and value | Must be `X-Cron-Secret` with the exact `CRON_SECRET` value from Render. |
 | Render says hours exhausted | Render billing page | Another free service in the same workspace is using hours; suspend it. |
+| A source shows "failing" in Sync & Sources | Its last error there | 403/429: the site now blocks automated reading; turn the source off and use Add by URL or the team sheet (never work around blocks). 404 or "no events": the site changed its pages; try `try-source <id>` locally and update the definition. |
+| No sync for over a day | Sync & Sources → last run; cron-job.org history | The tick starts syncs: re-enable the cron job, then **Run Sync Now**. |
+| Events look wrong after a sync | Admin → Source Conflicts | Pick the right value; or edit the event (edited fields are kept by later syncs). |
+| Someone can't sign in | More → Team | Reset Password gives a new temporary password; check the account wasn't removed. |
+| The map is blank | Browser console on the web app | Its tile worker comes from `/maplibre/` on the app site; redeploy with `npm run deploy:web` (it copies the worker in). |
+
+## Security notes (Phase 9 review)
+
+- **Secrets** live only in Render's Environment tab and the local, gitignored `apps/api/.env`. The app contains no secrets (checked in the built files); `EXPO_PUBLIC_*` values are public by design.
+- **Web app:** a Content-Security-Policy allows scripts only from the app's own site, data over HTTPS, and nothing embedded from elsewhere. The API adds Helmet's security headers and allows calls only from the app's address.
+- **Passwords** are hashed with scrypt; sign-in is rate-limited; refresh tokens are stored hashed and a reused one ends that sign-in everywhere. Every admin action is in the audit log.
+- **`npm audit` (2 Oct 2026):** the API's production packages have **no** known issues. The remaining findings are in Expo's build tooling (`@expo/cli`, `node-forge`, `@expo/config-plugins` → `uuid`), which runs only on the computer that builds the app and never ships to phones. One reaches the app: `decode-uri-component` (via Expo Router), a moderate slowdown on a deliberately malformed link opened on your own phone; its fix is a newer format Expo Router can't load yet. Re-check after Expo updates (`npm audit`) and apply fixes that don't need `--force`.
 
 ## Free-plan watch list
 Re-check these if the providers change their plans; nothing is paid without your approval:

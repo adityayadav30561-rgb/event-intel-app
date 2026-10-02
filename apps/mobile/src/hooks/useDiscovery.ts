@@ -1,6 +1,7 @@
 import type { SavedSearch, SavedSearchQuery } from '@eii/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { accountRepository } from '@/repositories';
+import { analytics } from '@/services/analytics';
 import { useSessionStage } from '@/store/sessionStore';
 
 /** Saved searches (§68), kept on the server so match alerts can use them. */
@@ -14,7 +15,10 @@ export function useSavedSearches() {
 export function useCreateSavedSearch() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (input: { name: string; query: SavedSearchQuery }) => accountRepository.createSavedSearch(input),
+    mutationFn: (input: { name: string; query: SavedSearchQuery }) => {
+      analytics.track('saved_search_create');
+      return accountRepository.createSavedSearch(input);
+    },
     onSuccess: (saved) => client.setQueryData<SavedSearch[]>(key, (list) => [saved, ...(list ?? [])]),
   });
 }

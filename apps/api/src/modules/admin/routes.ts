@@ -102,5 +102,13 @@ export function adminRoutes(admin: AdminService): Router {
     res.status(204).end();
   });
 
+  // Everyone's notes and plans: admins only.
+  router.get('/backup', requireRole('admin'), async (req, res) => {
+    noStore(res);
+    const backup = await admin.backup(actor(req));
+    res.set('Content-Disposition', `attachment; filename="eii-backup-${backup.createdAt.slice(0, 10)}.json"`);
+    res.json(backup);
+  });
+
   return router;
 }

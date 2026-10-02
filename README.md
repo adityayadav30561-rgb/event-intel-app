@@ -5,8 +5,8 @@ An internal app for a team of 4–5 people to discover professional events acros
 **Scope:** Discover → Evaluate → Track → Remember → Visit. The app never handles leads, CRM, contacts or sales; lead capture stays in the team's existing Excel workflow.
 
 - **Live app:** https://event-intelligence-india.expo.app
-- **Plan:** [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) · **Deploying and operating:** [docs/RUNBOOK.md](docs/RUNBOOK.md)
-- **Progress:** Phase 0 ✅ · Phase 1 ✅ · Phase 2 ✅ (API live at https://event-intel-api.onrender.com) · Phase 3 ✅ (live event sources) · Phase 4 ✅ (sign-in, interests, relevance) · Phase 5 ✅ (tracking and offline) · Phase 6 ✅ (discovery: natural search, zones, filters, map, saved searches) · Phase 7 ✅ (alerts, reminders, calendar, Event Day) · Phase 8 ✅ (admin tools)
+- **Plan:** [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) · **Deploying and operating:** [docs/RUNBOOK.md](docs/RUNBOOK.md) · **API:** [docs/API.md](docs/API.md) · **Team guide:** [docs/INSTALL.md](docs/INSTALL.md)
+- **Progress:** Phase 0 ✅ · Phase 1 ✅ · Phase 2 ✅ (API live at https://event-intel-api.onrender.com) · Phase 3 ✅ (live event sources) · Phase 4 ✅ (sign-in, interests, relevance) · Phase 5 ✅ (tracking and offline) · Phase 6 ✅ (discovery: natural search, zones, filters, map, saved searches) · Phase 7 ✅ (alerts, reminders, calendar, Event Day) · Phase 8 ✅ (admin tools) · Phase 9 ✅ (hardening, backups, docs)
 - **Expo project:** `@mithford_again/event-intelligence-india`
 
 ## Install on a phone
@@ -16,7 +16,7 @@ An internal app for a team of 4–5 people to discover professional events acros
 | iPhone (iOS 16.4+) | Open the link in **Safari** → **Share** → **Add to Home Screen** → **Add**. Always open the app from the home-screen icon. |
 | Android | Open the link in **Chrome** → **Install app** (or menu ⋮ → **Add to Home screen**). |
 
-Updates arrive automatically the next time the app is opened; **More** shows the version and when it was built.
+Updates arrive automatically the next time the app is opened; **More** shows the version and when it was built. The full team guide (sign-in, alerts, offline) is [docs/INSTALL.md](docs/INSTALL.md).
 
 ## Repository layout
 
@@ -24,7 +24,7 @@ Updates arrive automatically the next time the app is opened; **More** shows the
 apps/mobile      Expo + Expo Router + TypeScript app, exported to web (installable home-screen app)
 apps/api         Node + Express + TypeScript API on PostgreSQL (embedded PGlite locally, Neon in production)
 packages/shared  Domain types, API contracts (zod), taxonomy, Indian cities, IST dates, search rules, sample data
-docs/            Development plan and runbook
+docs/            Development plan, runbook, API reference, team guide, sources
 render.yaml      API deployment (Render free plan)
 ```
 

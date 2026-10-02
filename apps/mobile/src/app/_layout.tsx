@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { OfflineBanner, ToastHost } from '@/components/ui';
 import { InstallPrompt } from '@/components/ui/InstallPrompt';
 import { registerServiceWorker } from '@/platform/serviceWorker';
+import { analytics } from '@/services/analytics';
 import { useMeSync } from '@/hooks/useAccount';
 import { usePushRefresh } from '@/hooks/useAlerts';
 import { useTrackingLifecycle } from '@/hooks/useTracking';
@@ -18,6 +19,7 @@ import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 registerServiceWorker();
+analytics.track('app_open');
 
 /**
  * Where you can go depends on the session (Phase 4): signed out → sign in; temporary password →
@@ -124,3 +126,6 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+/** Unexpected failures on any screen land here instead of a blank page. */
+export { CrashScreen as ErrorBoundary } from '@/components/layout/CrashScreen';

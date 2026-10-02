@@ -6,6 +6,7 @@ import { sql as tracking } from './migrations/004_tracking';
 import { sql as savedSearches } from './migrations/005_saved_searches';
 import { sql as notifications } from './migrations/006_notifications';
 import { sql as admin } from './migrations/007_admin';
+import { sql as indexes } from './migrations/008_indexes';
 
 /** Ordered migrations, embedded in the bundle so the server can migrate itself on start. */
 const MIGRATIONS: { id: string; sql: string }[] = [
@@ -16,6 +17,7 @@ const MIGRATIONS: { id: string; sql: string }[] = [
   { id: '005_saved_searches', sql: savedSearches },
   { id: '006_notifications', sql: notifications },
   { id: '007_admin', sql: admin },
+  { id: '008_indexes', sql: indexes },
 ];
 
 /** Arbitrary constant for the advisory lock: only one instance migrates at a time. */

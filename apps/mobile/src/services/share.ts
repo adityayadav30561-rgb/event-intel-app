@@ -47,3 +47,31 @@ export async function shareMessage(title: string, text: string, copiedLabel = 'C
     showToast("Couldn't share", 'alert-circle');
   }
 }
+
+/**
+ * Saves a file from the web app: the share sheet where it can take files (on iPhone, "Save to
+ * Files"), otherwise a normal download.
+ */
+export async function saveFile(name: string, contents: string, type = 'application/json'): Promise<'saved' | 'cancelled' | 'unsupported'> {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return 'unsupported';
+  const blob = new Blob([contents], { type });
+  const file = typeof File !== 'undefined' ? new File([blob], name, { type }) : undefined;
+  if (file && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: name });
+      return 'saved';
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return 'cancelled';
+      // NotAllowedError: the tap was too long ago for the share sheet; download instead.
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  return 'saved';
+}

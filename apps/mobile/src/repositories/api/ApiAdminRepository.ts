@@ -61,4 +61,7 @@ export class ApiAdminRepository implements AdminRepository {
   async setSourceEnabled(id: string, enabled: boolean | null): Promise<void> {
     await this.api.request(`/admin/sources/${encodeURIComponent(id)}`, { method: 'PATCH', body: { enabled } });
   }
+  backup(): Promise<{ createdAt: string }> {
+    return this.api.request('/admin/backup');
+  }
 }

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { formatDateRange, formatTimeRange } from '@eii/shared';
 import { loadConfig } from './config';
 import { createPgliteDb, createPostgresDb } from './db/client';
@@ -8,6 +9,8 @@ import { ADAPTERS } from './ingestion/adapters';
 import { createFetcher } from './ingestion/fetcher';
 import { importFromUrl } from './ingestion/importUrl';
 import { normalize } from './ingestion/normalize';
+import { exportBackup, restoreBackup } from './modules/admin/backup';
+import { EventRepository } from './modules/events/repository';
 import { runEventSync } from './ingestion/sync';
 import type { SourceConfig, SourceRow } from './ingestion/types';
 
@@ -21,6 +24,10 @@ import type { SourceConfig, SourceRow } from './ingestion/types';
  *       Runs the event sync against the configured database.
  *   npm run cli -w @eii/api -- import-url <url>
  *       Shows the draft "Add by URL" would create.
+ *   npm run cli -w @eii/api -- backup [--out file.json]
+ *       Saves the team's data (see src/modules/admin/backup.ts) from the configured database.
+ *   npm run cli -w @eii/api -- restore <file.json>
+ *       Puts a backup back. Run `sync` first on a new database so events from sources exist.
  */
 const [command, ...rest] = process.argv.slice(2);
 const flag = (name: string) => {
@@ -101,8 +108,23 @@ async function main() {
       console.log(JSON.stringify(result.kind === 'ready' ? { kind: result.kind, event: result.event } : result, null, 2));
       return;
     }
+    case 'backup':
+      return withDb(async (db) => {
+        const backup = await exportBackup(db, new EventRepository(db));
+        const out = flag('out') || `eii-backup-${backup.createdAt.slice(0, 10)}.json`;
+        fs.writeFileSync(out, JSON.stringify(backup));
+        console.log(`Saved ${backup.users.length} accounts and the team's data to ${out}`);
+      });
+    case 'restore':
+      return withDb(async (db) => {
+        if (!rest[0]) throw new Error('Usage: restore <file.json>');
+        const report = await restoreBackup(db, JSON.parse(fs.readFileSync(rest[0], 'utf8')));
+        console.log(JSON.stringify(report, null, 2));
+        if (report.createdUsers.length) console.log('\nNew accounts have no password yet: reset each one in More → Admin → Team.');
+        if (Object.keys(report.skipped).length) console.log('\nSome rows belong to events not synced yet: run `sync`, then restore again.');
+      });
     default:
-      console.log('Commands: try, try-source, sync, import-url (see src/cli.ts)');
+      console.log('Commands: try, try-source, sync, import-url, backup, restore (see src/cli.ts)');
   }
 }
 

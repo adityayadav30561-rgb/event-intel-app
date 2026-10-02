@@ -6,6 +6,7 @@ import { LargeTitleScrollView } from '@/components/layout/LargeTitle';
 import { EmptyState, ErrorState, IconButton, ListGroup, ListRow, Skeleton, Text } from '@/components/ui';
 import { useInbox, useMarkRead, useReminders, useRemoveReminder } from '@/hooks/useAlerts';
 import { errorMessage } from '@/lib/errors';
+import { analytics } from '@/services/analytics';
 import { radius, spacing, useTheme, type ColorTokens } from '@/theme';
 
 const ICON: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
@@ -27,6 +28,7 @@ export function InboxScreen() {
   const unread = inbox.data?.unread ?? 0;
 
   const open = (n: AppNotification) => {
+    analytics.track('notification_open', { type: n.type });
     if (!n.readAt) markRead.mutate([n.id]);
     router.push(n.url as Href);
   };

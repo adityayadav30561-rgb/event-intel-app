@@ -22,7 +22,7 @@ export function Toggle({ value, onValueChange, accessibilityLabel }: { value: bo
       accessibilityState={{ checked: value }}
       aria-checked={value}
       accessibilityLabel={accessibilityLabel}
-      hitSlop={6}
+      hitSlop={7}
       style={[styles.track, { backgroundColor: value ? colors.green : colors.tertiaryFill }]}
     >
       <Animated.View style={[styles.thumb, { transform: [{ translateX: position.interpolate({ inputRange: [0, 1], outputRange: [0, TRAVEL] }) }] }]} />

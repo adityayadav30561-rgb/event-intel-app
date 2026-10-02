@@ -7,7 +7,7 @@ import { radius, shadow, useTheme } from '@/theme';
 export function PlaceButton({ label, onPress }: { label: string; onPress: () => void }) {
   const { colors } = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Location: ${label}. Change location`} style={({ pressed }) => pressed && styles.pressed}>
+    <Pressable onPress={onPress} hitSlop={3} accessibilityRole="button" accessibilityLabel={`Location: ${label}. Change location`} style={({ pressed }) => pressed && styles.pressed}>
       <Glass style={[styles.pill, shadow.floating]}>
         <Ionicons name="location" size={15} color={colors.tint} />
         <Text variant="subheadlineStrong" numberOfLines={1} style={styles.label}>
